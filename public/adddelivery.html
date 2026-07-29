@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Delivery</title>
+
+<style>
+:root{ --green:#537457; --green-dark:#3c5540; --cream:#fdf3e7; --amber:#c2823f; }
+*{ margin:0; padding:0; box-sizing:border-box; font-family:Arial,Helvetica,sans-serif; }
+body{ background:var(--cream); display:flex; justify-content:center; align-items:center; min-height:100vh; padding:24px; }
+.card{ width:100%; max-width:600px; background:#fff; padding:35px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,.1); }
+h1{ text-align:center; color:var(--green-dark); margin-bottom:25px; }
+label{ display:block; margin-top:18px; margin-bottom:6px; font-weight:bold; }
+input, select, textarea{ width:100%; padding:12px; border:2px solid #ddd; border-radius:8px; font-size:15px; }
+.checkbox-group{ display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
+.checkbox-group label{ margin:0; display:flex; align-items:center; gap:6px; font-weight:normal; }
+button{ width:100%; margin-top:25px; padding:14px; background:var(--green); color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; }
+button:hover{ background:var(--green-dark); }
+#message{ margin-top:18px; text-align:center; font-weight:bold; }
+.success{ color:green; }
+.error{ color:red; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Add Delivery</h1>
+  <form id="deliveryForm">
+    <label>Customer Name</label>
+    <input type="text" id="customer_name" list="customerOptions" placeholder="Type or select customer" required>
+    <datalist id="customerOptions"></datalist>
+
+    <label>Assign To Delivery Guy</label>
+    <select id="assigned_to_user_id" required>
+      <option value="">Select delivery guy</option>
+    </select>
+
+    <label>Delivery Date</label>
+    <input type="datetime-local" id="delivery_date" required>
+
+    <label>Diet Preference</label>
+    <select id="diet_preference" required>
+      <option value="Veg">Veg</option>
+      <option value="Non-Veg">Non-Veg</option>
+    </select>
+
+    <label>Meal Time</label>
+    <div class="checkbox-group">
+      <label><input type="checkbox" name="meal_time" value="Breakfast"> Breakfast</label>
+      <label><input type="checkbox" name="meal_time" value="Lunch"> Lunch</label>
+      <label><input type="checkbox" name="meal_time" value="Dinner"> Dinner</label>
+    </div>
+
+    <label>Comments</label>
+    <textarea id="comments" rows="4" placeholder="Add any comments"></textarea>
+
+    <label>Status</label>
+    <select id="delivery_status">
+      <option value="Pending">Pending</option>
+      <option value="Delivered">Delivered</option>
+      <option value="Cancelled">Cancelled</option>
+    </select>
+
+    <button type="submit">Add Delivery</button>
+  </form>
+  <div id="message"></div>
+</div>
+
+<script>
+const form = document.getElementById("deliveryForm");
+
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const selectedMealTimes = Array.from(document.querySelectorAll("input[name='meal_time']:checked")).map(item => item.value);
+  if (selectedMealTimes.length === 0) {
+    document.getElementById("message").className = "error";
+    document.getElementById("message").innerText = "Please select at least one meal time.";
+    return;
+  }
+
+  const body = {
+    customer_name: document.getElementById("customer_name").value.trim(),
+    assigned_to_user_id: Number(document.getElementById("assigned_to_user_id").value),
+    delivery_date: document.getElementById("delivery_date").value,
+    diet_preference: document.getElementById("diet_preference").value,
+    meal_time: selectedMealTimes,
+    comments: document.getElementById("comments").value.trim(),
+    delivery_status: document.getElementById("delivery_status").value
+  };
+
+  const res = await fetch("/dashboard/delivery/add", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  const data = await res.json();
+  const msg = document.getElementById("message");
+
+  if (data.success) {
+    msg.className = "success";
+    msg.innerText = "Delivery added successfully.";
+    form.reset();
+  } else {
+    msg.className = "error";
+    msg.innerText = data.message;
+  }
+});
+
+async function loadDeliveryGuys() {
+  try {
+    const res = await fetch("/dashboard/delivery/agents", { credentials: "include" });
+    const data = await res.json();
+    if (!data.success) return;
+
+    const select = document.getElementById("assigned_to_user_id");
+    data.agents.forEach(agent => {
+      const option = document.createElement("option");
+      option.value = String(agent.user_id);
+      option.textContent = `${agent.username} (#${agent.user_id})`;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function loadCustomers() {
+  try {
+    const res = await fetch("/dashboard/delivery/customers-list", { credentials: "include" });
+    const data = await res.json();
+    if (!data.success) return;
+
+    const list = document.getElementById("customerOptions");
+    list.innerHTML = "";
+    data.customers.forEach(customer => {
+      const option = document.createElement("option");
+      option.value = customer.customers_name;
+      list.appendChild(option);
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+loadDeliveryGuys();
+loadCustomers();
+</script>
+</body>
+</html>

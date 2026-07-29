@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<style>
+:root{
+    --green:#537457;
+    --green-dark:#3c5540;
+    --cream:#fdf3e7;
+    --ink:#26301f;
+    --amber:#c2823f;
+}
+*{box-sizing:border-box;font-family:Arial,sans-serif;}
+body{margin:0;background:var(--cream);color:var(--ink);padding:24px;}
+.container{max-width:1100px;margin:auto;}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px;}
+.top-right{display:flex;align-items:center;gap:10px;}
+.pill{display:inline-block;padding:7px 12px;border-radius:999px;background:#fff;border:1px solid #ddd;}
+.logout-btn{padding:8px 12px;border:none;border-radius:8px;background:#b42318;color:#fff;font-weight:bold;cursor:pointer;}
+.logout-btn:hover{background:#8f2017;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 8px 20px rgba(0,0,0,.08);}
+.card h3{margin:0 0 10px;color:var(--green-dark);}
+.card p{margin:0 0 12px;}
+.card a{display:inline-block;text-decoration:none;padding:10px 12px;border-radius:8px;background:var(--green);color:#fff;font-weight:bold;}
+.hidden{display:none;}
+.owner-box{margin-top:18px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.08);}
+label{display:block;font-size:13px;font-weight:bold;margin-top:10px;margin-bottom:6px;}
+input,select{width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;}
+button{margin-top:14px;padding:10px 14px;border:none;border-radius:8px;background:var(--amber);color:#fff;font-weight:bold;cursor:pointer;}
+#msg{margin-top:8px;font-weight:bold;}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="top">
+        <h1>Dashboard</h1>
+        <div class="top-right">
+            <span class="pill" id="who">Loading user...</span>
+            <button class="logout-btn" id="logoutBtn" type="button">Logout</button>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card" id="deliveriesCard">
+            <h3>Deliveries</h3>
+            <p id="deliveryCount">0 deliveries</p>
+            <a href="/dashboard/delivery">Open Deliveries</a>
+        </div>
+
+        <div class="card" id="customersCard">
+            <h3>Customers</h3>
+            <p id="customerCount">0 customers</p>
+            <a href="/dashboard/customers">Open Customers</a>
+        </div>
+
+        <div class="card" id="addDeliveryCard">
+            <h3>Add Delivery</h3>
+            <p>Create and assign orders to delivery guys.</p>
+            <a href="/dashboard/delivery/add">Create Delivery</a>
+        </div>
+
+        <div class="card" id="logsCard">
+            <h3>Logs</h3>
+            <p>View manager activity audit logs.</p>
+            <a href="/logs">Open Logs</a>
+        </div>
+    </div>
+
+    <div class="owner-box hidden" id="ownerBox">
+        <div id="createUserSection">
+            <h2>Owner: Add User / Delivery Guy</h2>
+            <form id="createUserForm">
+                <label>User ID</label>
+                <input id="user_id" type="number" required>
+
+                <label>Username</label>
+                <input id="username" type="text" required>
+
+                <label>Password</label>
+                <input id="password" type="password" required>
+
+                <label>Photo URL (Optional)</label>
+                <input id="photo_url" type="text" placeholder="https://.../photo.jpg">
+
+                <label>Role</label>
+                <select id="role" required>
+                    <option value="Observer">Observer</option>
+                    <option value="Delivery-Guy">Delivery-Guy</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Owner">Owner</option>
+                </select>
+
+                <button type="submit">Create User</button>
+                <div id="msg"></div>
+            </form>
+        </div>
+
+        <h2 style="margin-top: 30px;">Database Backup & Restore</h2>
+        <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+            <button id="exportBtn" type="button" style="background: var(--green); flex: 1; min-width: 150px;">📥 Export All Data</button>
+            <button id="docxExportBtn" type="button" style="background: var(--amber); flex: 1; min-width: 180px;">📝 Export DOCX Report</button>
+            <button id="importBtn" type="button" style="background: var(--green); flex: 1; min-width: 150px;">📤 Import Data</button>
+            <input type="file" id="importFile" accept=".json" style="display: none;">
+        </div>
+        <div id="backupMsg" style="margin-top: 10px;"></div>
+    </div>
+</div>
+
+<script>
+let caps = null;
+
+async function loadDashboard(){
+    const res = await fetch("/dashboard/data", { credentials: "include" });
+    const data = await res.json();
+
+    if(!data.success){
+        alert(data.message || "Failed to load dashboard");
+        return;
+    }
+
+    caps = data.capabilities;
+
+    document.getElementById("who").textContent = `${data.user.username} (${data.user.role})`;
+    document.getElementById("deliveryCount").textContent = `${data.counts.deliveries} deliveries`;
+    document.getElementById("customerCount").textContent = `${data.counts.customers} customers`;
+
+    if(!caps.canViewCustomers){
+        document.getElementById("customersCard").classList.add("hidden");
+    }
+
+    if(!caps.canAddDelivery){
+        document.getElementById("addDeliveryCard").classList.add("hidden");
+    }
+
+    if(caps.canViewLogs){
+        document.getElementById("logsCard").classList.remove("hidden");
+    }
+
+    if(caps.canManageUsers || caps.canViewLogs){
+        document.getElementById("ownerBox").classList.remove("hidden");
+    }
+
+    if(!caps.canManageUsers){
+        document.getElementById("createUserSection").classList.add("hidden");
+    }
+}
+
+document.getElementById("createUserForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const body = {
+        user_id: Number(document.getElementById("user_id").value),
+        username: document.getElementById("username").value.trim(),
+        password: document.getElementById("password").value,
+        photo_url: document.getElementById("photo_url").value.trim(),
+        role: document.getElementById("role").value
+    };
+
+    const res = await fetch("/dashboard/users/add", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    const msg = document.getElementById("msg");
+
+    if(!data.success){
+        msg.style.color = "#b42318";
+        msg.textContent = data.message || "Failed to create user.";
+        return;
+    }
+
+    msg.style.color = "green";
+    msg.textContent = data.message;
+    document.getElementById("createUserForm").reset();
+});
+
+document.getElementById("exportBtn").addEventListener("click", async () => {
+    try {
+        const res = await fetch("/dashboard/export", { credentials: "include" });
+        
+        if(!res.ok) {
+            throw new Error("Export failed");
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `db_export_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        const msg = document.getElementById("backupMsg");
+        msg.style.color = "green";
+        msg.textContent = "✓ Data exported successfully!";
+        setTimeout(() => msg.textContent = "", 5000);
+    } catch (err) {
+        const msg = document.getElementById("backupMsg");
+        msg.style.color = "#b42318";
+        msg.textContent = "✗ Export failed: " + err.message;
+    }
+});
+
+document.getElementById("docxExportBtn").addEventListener("click", async () => {
+    try {
+        const res = await fetch("/dashboard/export/docx", { credentials: "include" });
+        if(!res.ok) {
+            throw new Error("DOCX export failed");
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `user_delivery_report_${Date.now()}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        const msg = document.getElementById("backupMsg");
+        msg.style.color = "green";
+        msg.textContent = "✓ DOCX report exported successfully!";
+        setTimeout(() => msg.textContent = "", 5000);
+    } catch (err) {
+        const msg = document.getElementById("backupMsg");
+        msg.style.color = "#b42318";
+        msg.textContent = "✗ DOCX export failed: " + err.message;
+    }
+});
+
+document.getElementById("importBtn").addEventListener("click", () => {
+    document.getElementById("importFile").click();
+});
+
+document.getElementById("importFile").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+
+    try {
+        const fileContent = await file.text();
+        const data = JSON.parse(fileContent);
+
+        const res = await fetch("/dashboard/import", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ collections: data.collections })
+        });
+
+        const result = await res.json();
+        const msg = document.getElementById("backupMsg");
+
+        if(!result.success) {
+            msg.style.color = "#b42318";
+            msg.textContent = "✗ Import failed: " + (result.message || "Unknown error");
+            return;
+        }
+
+        msg.style.color = "green";
+        msg.textContent = `✓ ${result.message}`;
+        document.getElementById("importFile").value = "";
+        setTimeout(() => msg.textContent = "", 5000);
+    } catch (err) {
+        const msg = document.getElementById("backupMsg");
+        msg.style.color = "#b42318";
+        msg.textContent = "✗ Import error: " + err.message;
+    }
+});
+
+loadDashboard();
+
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await fetch("/login/logout", {
+        method: "POST",
+        credentials: "include"
+    });
+
+    window.location.href = "/login";
+});
+</script>
+</body>
+</html>

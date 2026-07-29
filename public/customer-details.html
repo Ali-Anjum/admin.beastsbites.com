@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Details</title>
+  <style>
+    :root { --green:#537457; --green-dark:#3c5540; --cream:#fdf3e7; --ink:#26301f; --amber:#c2823f; }
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+    body { margin:0; background:var(--cream); color:var(--ink); padding:32px; }
+    .container { max-width:1000px; margin:auto; background:#fff; padding:24px; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.08); }
+    h1, h2 { color:var(--green-dark); }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:18px; }
+    .card { background:#faf7f2; padding:16px; border-radius:10px; }
+    label { display:block; font-weight:bold; margin-top:10px; }
+    input, select, textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; margin-top:6px; }
+    .checkbox-group { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; }
+    button { margin-top:16px; padding:10px 14px; border:none; border-radius:8px; background:var(--green); color:white; cursor:pointer; }
+    button:hover { background:var(--green-dark); }
+    .message { margin-top:10px; font-weight:bold; }
+    .success { color:green; }
+    .error { color:#c0392b; }
+    table { width:100%; border-collapse:collapse; margin-top:16px; }
+    th, td { border-bottom:1px solid #ddd; padding:10px; text-align:left; }
+    .badge { display:inline-block; padding:6px 10px; border-radius:999px; color:white; background:var(--amber); }
+    a { color:var(--green-dark); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="customerTitle">Customer Details</h1>
+    <div id="message" class="message"></div>
+    <div class="grid">
+      <div class="card">
+        <h2>Profile</h2>
+        <form id="customerForm">
+          <label>Name</label>
+          <input id="customers_name" />
+          <label>Phone</label>
+          <input id="phone_number" />
+          <label>Location</label>
+          <input id="location" />
+          <label>Diet</label>
+          <select id="diet_preference">
+            <option value="Veg">Veg</option>
+            <option value="Non-Veg">Non-Veg</option>
+          </select>
+          <label>Plan</label>
+          <select id="plan">
+            <option value="Trial">Trial</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Monthly">Monthly</option>
+          </select>
+          <label>Meals</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" name="meal_time" value="Breakfast" /> Breakfast</label>
+            <label><input type="checkbox" name="meal_time" value="Lunch" /> Lunch</label>
+            <label><input type="checkbox" name="meal_time" value="Dinner" /> Dinner</label>
+          </div>
+          <label>Delivery Guy</label>
+          <select id="delivery_guy"></select>
+          <label>Comments</label>
+          <textarea id="comments"></textarea>
+          <label>Purchase Proof (Optional)</label>
+          <input id="purchase_proof" placeholder="URL or link to purchase proof/receipt" />
+          <button type="submit">Update Customer</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Subscription</h2>
+        <div id="subscriptionInfo">Loading...</div>
+        <h2 style="margin-top:18px;">Deliveries</h2>
+        <table>
+          <thead><tr><th>Delivery ID</th><th>Date</th><th>Status</th><th>View</th></tr></thead>
+          <tbody id="deliveryRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script>
+    const customerId = window.location.pathname.split('/').pop();
+    const messageEl = document.getElementById('message');
+
+    async function loadCustomer() {
+      const res = await fetch(`/dashboard/customers/${customerId}?format=json`, { credentials: 'include' });
+      const data = await res.json();
+      if (!data.success) {
+        messageEl.className = 'error';
+        messageEl.textContent = data.message || 'Failed to load customer';
+        return;
+      }
+      const customer = data.customer;
+      document.getElementById('customerTitle').textContent = `${customer.customers_name} (#${customer.customers_id})`;
+      document.getElementById('customers_name').value = customer.customers_name;
+      document.getElementById('phone_number').value = customer.phone_number;
+      document.getElementById('location').value = customer.location || '';
+      document.getElementById('diet_preference').value = customer.diet_preference;
+      document.getElementById('plan').value = customer.plan;
+      document.querySelectorAll('input[name="meal_time"]').forEach(box => {
+        box.checked = (customer.meal_time || []).includes(box.value);
+      });
+      const deliveryGuySelect = document.getElementById('delivery_guy');
+      const guysRes = await fetch('/dashboard/customers/delivery-guys', { credentials: 'include' });
+      const guysData = await guysRes.json();
+      deliveryGuySelect.innerHTML = '';
+      (guysData.deliveryGuys || []).forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        deliveryGuySelect.appendChild(option);
+      });
+      deliveryGuySelect.value = customer.delivery_guy;
+      document.getElementById('comments').value = customer.comments || '';
+      document.getElementById('purchase_proof').value = customer.purchase_proof || '';
+
+      const subscriptionInfo = document.getElementById('subscriptionInfo');
+      const subscription = data.subscription;
+      subscriptionInfo.innerHTML = subscription
+        ? `<strong>Subscription ID:</strong> ${subscription.subscription_id}<br><strong>Status:</strong> ${subscription.status}<br><strong>Type:</strong> ${subscription.subscription_type}<br><strong>Start:</strong> ${new Date(subscription.start_date).toLocaleDateString()}<br><strong>End:</strong> ${new Date(subscription.stop_date).toLocaleDateString()}`
+        : 'No subscription found.';
+
+      const rows = document.getElementById('deliveryRows');
+      rows.innerHTML = '';
+      (data.deliveries || []).forEach(delivery => {
+        rows.innerHTML += `<tr><td>${delivery.delivery_id}</td><td>${new Date(delivery.delivery_date).toLocaleDateString()}</td><td><span class="badge">${delivery.delivery_status}</span></td><td><a href="/delivery/${delivery._id}">Open</a></td></tr>`;
+      });
+    }
+
+    document.getElementById('customerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        customers_name: document.getElementById('customers_name').value.trim(),
+        phone_number: document.getElementById('phone_number').value.trim(),
+        location: document.getElementById('location').value.trim(),
+        diet_preference: document.getElementById('diet_preference').value,
+        plan: document.getElementById('plan').value,
+        meal_time: Array.from(document.querySelectorAll('input[name="meal_time"]:checked')).map(el => el.value),
+        delivery_guy: document.getElementById('delivery_guy').value,
+        comments: document.getElementById('comments').value.trim(),
+        purchase_proof: document.getElementById('purchase_proof').value.trim()
+      };
+      const res = await fetch(`/dashboard/customers/${customerId}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!data.success) {
+        messageEl.className = 'error';
+        messageEl.textContent = data.message || 'Update failed';
+      } else {
+        messageEl.className = 'success';
+        messageEl.textContent = 'Customer updated successfully.';
+      }
+    });
+
+    loadCustomer();
+  </script>
+</body>
+</html>

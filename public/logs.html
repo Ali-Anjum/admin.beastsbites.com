@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manager Action Logs</title>
+<style>
+:root{
+  --green:#537457;
+  --green-dark:#3c5540;
+  --cream:#fdf3e7;
+}
+*{box-sizing:border-box;font-family:Arial,sans-serif;}
+body{margin:0;background:var(--cream);padding:24px;}
+.container{max-width:1200px;margin:auto;}
+h1{color:var(--green-dark);}
+.table-wrap{overflow:auto;background:#fff;border-radius:12px;box-shadow:0 8px 22px rgba(0,0,0,.08);}
+table{width:100%;border-collapse:collapse;min-width:900px;}
+th,td{padding:12px 14px;border-bottom:1px solid #eee;text-align:left;vertical-align:top;}
+thead{background:var(--green);color:#fff;}
+pre{margin:0;white-space:pre-wrap;font-size:12px;}
+.pagination{display:flex;gap:8px;justify-content:center;margin-top:18px;}
+button{padding:8px 14px;border:none;border-radius:8px;background:var(--green);color:#fff;cursor:pointer;}
+button.active{background:#c2823f;}
+.loading{text-align:center;padding:30px;color:#444;}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Manager Action Logs</h1>
+  <div id="loading" class="loading">Loading logs...</div>
+  <div class="table-wrap" id="tableWrap" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Actor</th>
+          <th>Method</th>
+          <th>Route</th>
+          <th>Action</th>
+          <th>Status</th>
+          <th>Payload</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="pagination" id="pagination"></div>
+</div>
+<script>
+let currentPage = 1;
+let totalPages = 1;
+
+async function load(page = 1){
+  const res = await fetch(`/logs/data?page=${page}`, { credentials: "include" });
+  const data = await res.json();
+
+  document.getElementById("loading").style.display = "none";
+
+  if(!data.success){
+    alert(data.message || "Failed to load logs.");
+    return;
+  }
+
+  document.getElementById("tableWrap").style.display = "block";
+
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  data.logs.forEach((log) => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${new Date(log.created_at).toLocaleString()}</td>
+        <td>${log.actor_username} (${log.actor_role})</td>
+        <td>${log.method}</td>
+        <td>${log.route}</td>
+        <td>${log.action || "-"}</td>
+        <td>${log.status_code}</td>
+        <td><pre>${JSON.stringify(log.payload || {}, null, 2)}</pre></td>
+      </tr>
+    `;
+  });
+
+  currentPage = data.currentPage;
+  totalPages = data.totalPages;
+  renderPagination();
+}
+
+function renderPagination(){
+  const pagination = document.getElementById("pagination");
+  pagination.innerHTML = "";
+
+  for(let i = 1; i <= totalPages; i++){
+    pagination.innerHTML += `<button class="${i===currentPage?"active":""}" onclick="load(${i})">${i}</button>`;
+  }
+}
+
+load(1);
+</script>
+</body>
+</html>

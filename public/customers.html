@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customers</title>
+<style>
+:root{--green:#537457;--green-dark:#3c5540;--cream:#fdf3e7;--white:#ffffff;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+body{background:var(--cream);padding:40px;}
+.container{max-width:1150px;margin:auto;}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;gap:15px;flex-wrap:wrap;}
+.header h1{color:var(--green-dark);font-size:34px;}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+input{padding:12px;width:320px;border:2px solid var(--green);border-radius:8px;font-size:15px;outline:none;}
+input:focus{border-color:var(--green-dark);}
+button{padding:12px 18px;border:none;background:var(--green);color:white;border-radius:8px;cursor:pointer;font-size:15px;transition:.2s;}
+button:hover{background:var(--green-dark);} 
+table{width:100%;border-collapse:collapse;background:white;box-shadow:0 10px 25px rgba(0,0,0,.08);border-radius:10px;overflow:hidden;} 
+thead{background:var(--green);color:white;} 
+th,td{padding:16px;text-align:left;border-bottom:1px solid #eee;} 
+tbody tr:nth-child(even){background:#faf7f2;} 
+tbody tr:hover{background:#eef3ec;} 
+.loading,.empty{text-align:center;margin-top:25px;font-size:18px;}
+.pagination{margin-top:25px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;} .pagination button{padding:8px 15px;}.pagination button.active{background:#c2823f;} .row-actions button{padding:8px 12px;margin-right:8px;} @media(max-width:700px){.header{flex-direction:column;align-items:flex-start;}.controls{width:100%;}input{width:100%;}button{width:100%;}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Customers</h1>
+    <div class="controls">
+      <input id="search" placeholder="Search customer or phone...">
+      <button id="addCustomerBtn" style="display:none;" onclick="location.href='/dashboard/customers/add'">+ Add Customer</button>
+    </div>
+  </div>
+  <div id="loading" class="loading">Loading customers...</div>
+  <table id="table" style="display:none;">
+    <thead>
+      <tr>
+        <th>Customer ID</th>
+        <th>Name</th>
+        <th>Phone Number</th>
+        <th>Veg/Non-Veg</th>
+        <th>Plan</th>
+        <th>Meals</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="empty" class="empty" style="display:none;">No customers found.</div>
+  <div id="pagination" class="pagination"></div>
+</div>
+<script>
+let currentPage = 1;
+let totalPages = 1;
+
+async function load(page = 1){
+  const search = document.getElementById("search").value;
+  document.getElementById("loading").style.display = "block";
+  const res = await fetch(`/dashboard/customers/data?page=${page}&search=${encodeURIComponent(search)}`, { credentials: "include" });
+  const data = await res.json();
+  document.getElementById("loading").style.display = "none";
+
+  if (!data.success) {
+    alert(data.message);
+    return;
+  }
+
+  if (data.role === "Owner" || data.role === "Manager") {
+    document.getElementById("addCustomerBtn").style.display = "inline-block";
+  }
+
+  const table = document.getElementById("table");
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  if (data.customers.length === 0) {
+    table.style.display = "none";
+    document.getElementById("empty").style.display = "block";
+  } else {
+    table.style.display = "table";
+    document.getElementById("empty").style.display = "none";
+  }
+
+  data.customers.forEach(customer => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${customer.customers_id}</td>
+        <td>${customer.customers_name}</td>
+        <td>${customer.phone_number}</td>
+        <td>${customer.diet_preference || "-"}</td>
+        <td>${customer.plan || "-"}</td>
+        <td>${(customer.meal_time || []).join(", ") || "-"}</td>
+        <td class="row-actions">
+          <button onclick="window.location.href='/dashboard/customers/${customer.customers_id}'">Open</button>
+        </td>
+      </tr>`;
+  });
+
+  currentPage = data.currentPage;
+  totalPages = data.totalPages;
+  renderPagination();
+}
+
+function renderPagination(){
+  const div = document.getElementById("pagination");
+  div.innerHTML = "";
+  if (totalPages <= 1) return;
+  for (let i = 1; i <= totalPages; i++) {
+    div.innerHTML += `<button class="${i === currentPage ? "active" : ""}" onclick="load(${i})">${i}</button>`;
+  }
+}
+
+let timer;
+document.getElementById("search").addEventListener("input", () => {
+  clearTimeout(timer);
+  timer = setTimeout(() => load(1), 300);
+});
+
+load();
+</script>
+</body>
+</html>

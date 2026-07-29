@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Beast Bites</title>
+
+<link rel="icon" href="logo.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --green:#537457;
+  --green-dark:#3c5540;
+  --cream:#fdf3e7;
+  --ink:#26301f;
+  --amber:#c2823f;
+  --line:rgba(38,48,31,.14);
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+  background:var(--cream);
+  color:var(--ink);
+  font-family:'Work Sans',sans-serif;
+}
+
+.card{
+  width:100%;
+  max-width:380px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:44px 38px;
+  text-align:center;
+  box-shadow:0 24px 50px -30px rgba(38,48,31,.35);
+}
+
+.card img{
+  width:64px;
+  height:64px;
+  object-fit:cover;
+  border-radius:50%;
+  margin-bottom:14px;
+}
+
+h1{
+  margin:0 0 4px;
+  font-family:'Anton',sans-serif;
+  font-weight:400;
+  font-size:22px;
+  text-transform:uppercase;
+  color:var(--green-dark);
+}
+
+.sub{
+  margin-bottom:28px;
+  opacity:.6;
+  font-size:13px;
+}
+
+.field{
+  text-align:left;
+  margin-bottom:16px;
+}
+
+.field label{
+  display:block;
+  margin-bottom:6px;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+
+.field input{
+  width:100%;
+  padding:13px 15px;
+  border-radius:12px;
+  border:1.5px solid var(--line);
+  background:var(--cream);
+  font-size:14px;
+  outline:none;
+  transition:.2s;
+}
+
+.field input:focus{
+  border-color:var(--amber);
+}
+
+button{
+  width:100%;
+  margin-top:8px;
+  padding:14px;
+  border:none;
+  border-radius:100px;
+  background:var(--amber);
+  color:white;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:700;
+  text-transform:uppercase;
+  transition:.2s;
+}
+
+button:hover{
+  background:#a5692c;
+  transform:translateY(-1px);
+}
+
+.note{
+  margin-top:20px;
+  font-size:12px;
+  opacity:.55;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+    <img src="logo.jpg" alt="Beast Bites">
+
+    <h1>Beast Bites</h1>
+
+    <p class="sub">
+        Staff login — authorized access only
+    </p>
+
+    <form action="/login" method="POST">
+
+        <div class="field">
+            <label for="user">Username</label>
+            <input
+                id="username"
+                name="username"
+                type="text"
+                autocomplete="username"
+                required
+            >
+        </div>
+
+        <div class="field">
+            <label for="pass">Password</label>
+            <input
+                id="pass"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                required
+            >
+        </div>
+
+        <button type="submit">
+            Log In
+        </button>
+
+    </form>
+
+    <p class="note">
+        Not affiliated with public access. Contact admin for credentials.
+    </p>
+
+</div>
+
+</body>
+</html>

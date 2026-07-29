@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeastBites - Deliveries</title>
+    <style>
+        :root { --green: #537457; --green-dark: #3c5540; --cream: #fdf3e7; --ink: #26301f; --amber: #c2823f; --amber-dark: #a5692c; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+        body { background: var(--cream); color: var(--ink); padding: 40px; }
+        .container { max-width: 1200px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        .header h1 { color: var(--green-dark); }
+        .controls { display: flex; gap: 12px; }
+        select { padding: 10px 14px; border: 2px solid var(--green); border-radius: 8px; background: white; color: var(--ink); font-size: 15px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+        thead { background: var(--green); color: white; }
+        th { padding: 15px; text-align: left; }
+        td { padding: 15px; border-bottom: 1px solid #ececec; }
+        tbody tr:nth-child(even) { background: #faf7f2; }
+        tbody tr:hover { background: #eef3ec; }
+        tbody tr.clickable { cursor: pointer; }
+        .badge { display: inline-block; padding: 6px 14px; border-radius: 999px; color: white; font-size: 13px; font-weight: bold; }
+        .table-actions { color: #6b7280; font-size: 13px; }
+        .pending { background: var(--amber); }
+        .delivered { background: var(--green); }
+        .cancelled { background: #c0392b; }
+        .empty { display: none; text-align: center; margin-top: 30px; font-size: 18px; color: #666; }
+        .loading { text-align: center; font-size: 18px; margin-top: 40px; }
+        button { padding: 8px 15px; border: none; border-radius: 8px; cursor: pointer; background: var(--green); color: #fff; font-weight: bold; transition: .2s; }
+        button:hover { background: var(--green-dark); }
+        .pagination{ margin-top:25px; display:flex; justify-content:center; flex-wrap:wrap; gap:8px; }
+        .pagination button{ padding:8px 14px; border:none; border-radius:8px; background:#537457; color:white; cursor:pointer; font-weight:bold; }
+        .pagination button.active{ background:#c2823f; }
+        .pagination button:hover{ background:#3c5540; }
+        a{ color: var(--green-dark); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Delivery History</h1>
+            <div class="controls">
+                <select id="statusFilter">
+                    <option value="All">All Deliveries</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Delivered">Delivered</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+                <select id="sortOrder">
+                    <option value="Newest">Newest First</option>
+                    <option value="Oldest">Oldest First</option>
+                </select>
+            </div>
+        </div>
+        <div class="loading" id="loading">Loading deliveries...</div>
+        <table id="deliveryTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th>Delivery ID</th>
+                    <th>Subscription</th>
+                    <th>Assigned To</th>
+                    <th>Delivery Date</th>
+                    <th>Food</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        <div id="pagination" class="pagination"></div>
+        <div class="empty" id="empty">No deliveries found.</div>
+    </div>
+    <script>
+        let editingId = null;
+        let deliveries = [];
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentRole = "Observer";
+
+        async function loadDeliveries(page = 1){
+            const response = await fetch(`/dashboard/delivery/data?page=${page}`, { credentials: "include" });
+            const data = await response.json();
+            if (!data.success) {
+                alert(data.message);
+                return;
+            }
+            deliveries = data.deliveries;
+            currentRole = data.role || "Observer";
+            currentPage = data.currentPage;
+            totalPages = data.totalPages;
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("deliveryTable").style.display = "table";
+            render();
+            renderPagination();
+        }
+
+        function renderPagination(){
+            const container = document.getElementById("pagination");
+            container.innerHTML = "";
+            for (let i = 1; i <= totalPages; i++) {
+                container.innerHTML += `<button class="${i === currentPage ? "active" : ""}" onclick="loadDeliveries(${i})">${i}</button>`;
+            }
+        }
+
+        function render() {
+            const statusFilter = document.getElementById("statusFilter").value;
+            const sortOrder = document.getElementById("sortOrder").value;
+            let list = [...deliveries];
+            if (statusFilter !== "All") {
+                list = list.filter(item => item.delivery_status === statusFilter);
+            }
+            list.sort((a, b) => {
+                const d1 = new Date(a.delivery_date);
+                const d2 = new Date(b.delivery_date);
+                return sortOrder === "Newest" ? d2 - d1 : d1 - d2;
+            });
+            const tbody = document.getElementById("tableBody");
+            tbody.innerHTML = "";
+            if (list.length === 0) {
+                document.getElementById("empty").style.display = "block";
+                return;
+            }
+            document.getElementById("empty").style.display = "none";
+            list.forEach(delivery => {
+                tbody.innerHTML += `
+                <tr class="clickable" onclick="openDelivery('${delivery._id}')">
+                    <td><a href="/delivery/${delivery._id}">${delivery.delivery_id}</a></td>
+                    <td>${delivery.subscription_id}</td>
+                    <td>${delivery.assigned_to_username || "-"}</td>
+                    <td>${new Date(delivery.delivery_date).toLocaleString()}</td>
+                    <td>${delivery.food}</td>
+                    <td><span class="badge ${delivery.delivery_status.toLowerCase()}">${delivery.delivery_status}</span></td>
+                </tr>`;
+            });
+        }
+
+        document.getElementById("statusFilter").addEventListener("change", render);
+        document.getElementById("sortOrder").addEventListener("change", render);
+        loadDeliveries(1);
+
+        function openDelivery(id) {
+            window.location.href = `/delivery/${id}`;
+        }
+
+        function editStatus(id) {
+            editingId = id;
+            render();
+        }
+
+        async function saveStatus(id) {
+            const status = document.getElementById(`status-${id}`).value;
+            try {
+                const response = await fetch(`/dashboard/delivery/${id}/status`, {
+                    method: "PATCH",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ delivery_status: status })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    alert(data.message);
+                    return;
+                }
+                const index = deliveries.findIndex(d => d._id === id);
+                if (index !== -1) {
+                    deliveries[index].delivery_status = status;
+                }
+                editingId = null;
+                render();
+            } catch (err) {
+                console.error(err);
+                alert("Failed to update delivery.");
+            }
+        }
+    </script>
+</body>
+</html>

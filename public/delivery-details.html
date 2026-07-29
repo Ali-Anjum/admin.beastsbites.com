@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delivery Details</title>
+  <style>
+    :root { --green:#537457; --green-dark:#3c5540; --cream:#fdf3e7; --ink:#26301f; --amber:#c2823f; }
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+    body { margin:0; background:var(--cream); color:var(--ink); padding:32px; }
+    .container { max-width:900px; margin:auto; background:#fff; padding:24px; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.08); }
+    h1, h2 { color:var(--green-dark); }
+    .card { background:#faf7f2; padding:16px; border-radius:10px; margin-top:16px; }
+    label { display:block; font-weight:bold; margin-top:10px; }
+    input, select, textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; margin-top:6px; }
+    button { margin-top:16px; padding:10px 14px; border:none; border-radius:8px; background:var(--green); color:white; cursor:pointer; }
+    button:hover { background:var(--green-dark); }
+    .message { margin-top:10px; font-weight:bold; }
+    .success { color:green; }
+    .error { color:#c0392b; }
+    .badge { display:inline-block; padding:6px 10px; border-radius:999px; color:white; background:var(--amber); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/dashboard/delivery" style="display:inline-block; margin-bottom:12px; color:var(--green-dark); font-weight:bold;">← Back to deliveries</a>
+    <h1>Delivery Details</h1>
+    <div id="message" class="message"></div>
+    <div class="card">
+      <h2 id="deliveryTitle">Loading...</h2>
+      <div id="deliveryInfo"></div>
+      <div id="customerInfo" style="margin-top:12px;"></div>
+      <div id="managementSection">
+        <div id="photoPreview" style="margin-top:12px;"></div>
+        <label>Status</label>
+        <select id="delivery_status">
+          <option value="Pending">Pending</option>
+          <option value="Delivered">Delivered</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+        <label>Photo</label>
+        <input id="photoFile" type="file" accept="image/*" />
+        <input id="photoUrl" placeholder="Or paste image URL" style="margin-top:8px;" />
+        <div id="photoHint" style="margin-top:8px; font-size:13px; color:#666;">Choose a file or paste a URL. A photo is required before marking this delivery as Delivered.</div>
+        <button id="saveBtn">Save Status</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const deliveryId = window.location.pathname.split('/').pop();
+    const messageEl = document.getElementById('message');
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function loadDelivery() {
+      const res = await fetch(`/delivery/${deliveryId}?format=json`, { credentials: 'include' });
+      const data = await res.json();
+      if (!data.success) {
+        messageEl.className = 'error';
+        messageEl.textContent = data.message || 'Failed to load delivery';
+        return;
+      }
+      const delivery = data.delivery;
+      const customer = data.customer;
+      const managementSection = document.getElementById('managementSection');
+      document.getElementById('deliveryTitle').textContent = `Delivery #${delivery.delivery_id}`;
+      document.getElementById('deliveryInfo').innerHTML = `
+        <strong>Status:</strong> <span class="badge">${delivery.delivery_status}</span><br>
+        <strong>Assigned To:</strong> ${delivery.assigned_to_username || '-'}<br>
+        <strong>Date:</strong> ${new Date(delivery.delivery_date).toLocaleString()}<br>
+        <strong>Subscription:</strong> ${delivery.subscription_id || '-'}<br>
+        <strong>Food:</strong> ${delivery.food || '-'}<br>
+        <strong>Meals:</strong> ${(delivery.meal_time || []).join(', ') || '-'}
+      `;
+      const canManage = !data.restrictedView;
+      managementSection.style.display = canManage ? 'block' : 'none';
+      document.getElementById('delivery_status').value = delivery.delivery_status;
+      document.getElementById('photoUrl').value = delivery.photo_url || '';
+      const photoPreview = document.getElementById('photoPreview');
+      const photoHint = document.getElementById('photoHint');
+      if (delivery.photo_url) {
+        const safePhotoUrl = String(delivery.photo_url).startsWith('data:') ? delivery.photo_url : delivery.photo_url;
+        photoPreview.innerHTML = `<img src="${safePhotoUrl}" alt="Delivery photo" style="max-width:100%; max-height:220px; border-radius:10px; border:1px solid #ddd;" />`;
+        photoHint.textContent = 'Current photo is attached. You can replace it before saving.';
+      } else {
+        photoPreview.innerHTML = '';
+        photoHint.textContent = 'Choose a file or paste a URL. A photo is required before marking this delivery as Delivered.';
+      }
+      if (canManage && customer) {
+        document.getElementById('customerInfo').innerHTML = `
+          <h3>Customer</h3>
+          <strong>Name:</strong> ${customer.customers_name || '-'}<br>
+          <strong>Phone:</strong> ${customer.phone_number || '-'}<br>
+          <strong>Location:</strong> ${customer.location || '-'}<br>
+          <strong>Plan:</strong> ${customer.plan || '-'}<br>
+          <strong>Diet:</strong> ${customer.diet_preference || '-'}<br>
+          <strong>Delivery Guy:</strong> ${customer.delivery_guy || '-'}
+        `;
+      } else if (canManage) {
+        document.getElementById('customerInfo').innerHTML = '<h3>Customer</h3>No linked customer found.';
+      } else {
+        document.getElementById('customerInfo').innerHTML = '<h3>Customer</h3>Customer details are hidden for completed deliveries for this role.';
+      }
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const status = document.getElementById('delivery_status').value;
+      const photoUrl = document.getElementById('photoUrl').value.trim();
+      const photoFile = document.getElementById('photoFile').files[0];
+      let photo = photoUrl;
+
+      if (photoFile) {
+        photo = await readFileAsDataUrl(photoFile);
+      }
+
+      if (status === 'Delivered' && !photo) {
+        messageEl.className = 'error';
+        messageEl.textContent = 'Please add a photo before marking this delivery as Delivered.';
+        return;
+      }
+
+      const res = await fetch(`/dashboard/delivery/${deliveryId}/status`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delivery_status: status, photo })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        messageEl.className = 'error';
+        messageEl.textContent = data.message || 'Failed to update delivery';
+      } else {
+        messageEl.className = 'success';
+        messageEl.textContent = 'Delivery updated successfully.';
+      }
+    });
+
+    loadDelivery();
+  </script>
+</body>
+</html>
