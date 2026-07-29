@@ -7,8 +7,9 @@
 
 <style>
 :root{ --green:#537457; --green-dark:#3c5540; --cream:#fdf3e7; --amber:#c2823f; }
+html{-webkit-text-size-adjust:100%; }
 *{ margin:0; padding:0; box-sizing:border-box; font-family:Arial,Helvetica,sans-serif; }
-body{ background:var(--cream); display:flex; justify-content:center; align-items:center; min-height:100vh; padding:24px; }
+body{ background:var(--cream); display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding:clamp(16px,3vw,24px); }
 .card{ width:100%; max-width:600px; background:#fff; padding:35px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,.1); }
 h1{ text-align:center; color:var(--green-dark); margin-bottom:25px; }
 label{ display:block; margin-top:18px; margin-bottom:6px; font-weight:bold; }
@@ -20,6 +21,11 @@ button:hover{ background:var(--green-dark); }
 #message{ margin-top:18px; text-align:center; font-weight:bold; }
 .success{ color:green; }
 .error{ color:red; }
+@media (max-width: 640px){
+  .card{padding:24px 18px;border-radius:12px;}
+  .checkbox-group{flex-direction:column;align-items:flex-start;gap:10px;}
+  button{padding:13px;}
+}
 </style>
 </head>
 <body>

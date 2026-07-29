@@ -10,8 +10,9 @@
   --green-dark:#3c5540;
   --cream:#fdf3e7;
 }
+html{-webkit-text-size-adjust:100%;}
 *{box-sizing:border-box;font-family:Arial,sans-serif;}
-body{margin:0;background:var(--cream);padding:24px;}
+body{margin:0;background:var(--cream);padding:clamp(16px,3vw,24px);}
 .container{max-width:1200px;margin:auto;}
 h1{color:var(--green-dark);}
 .table-wrap{overflow:auto;background:#fff;border-radius:12px;box-shadow:0 8px 22px rgba(0,0,0,.08);}
@@ -23,6 +24,10 @@ pre{margin:0;white-space:pre-wrap;font-size:12px;}
 button{padding:8px 14px;border:none;border-radius:8px;background:var(--green);color:#fff;cursor:pointer;}
 button.active{background:#c2823f;}
 .loading{text-align:center;padding:30px;color:#444;}
+@media (max-width: 760px){
+  th,td{padding:10px 12px;}
+  .container{width:100%;}
+}
 </style>
 </head>
 <body>

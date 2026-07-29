@@ -18,6 +18,8 @@
   --line:rgba(38,48,31,.14);
 }
 
+html{-webkit-text-size-adjust:100%;}
+
 *{
   box-sizing:border-box;
 }
@@ -28,7 +30,7 @@ body{
   display:flex;
   justify-content:center;
   align-items:center;
-  padding:20px;
+  padding:16px;
   background:var(--cream);
   color:var(--ink);
   font-family:'Work Sans',sans-serif;
@@ -36,11 +38,11 @@ body{
 
 .card{
   width:100%;
-  max-width:380px;
+  max-width:420px;
   background:#fff;
   border:1px solid var(--line);
   border-radius:24px;
-  padding:44px 38px;
+  padding:clamp(32px,6vw,44px) clamp(22px,5vw,38px);
   text-align:center;
   box-shadow:0 24px 50px -30px rgba(38,48,31,.35);
 }
@@ -121,6 +123,11 @@ button:hover{
   margin-top:20px;
   font-size:12px;
   opacity:.55;
+}
+
+@media (max-width: 480px){
+  body{align-items:flex-start;}
+  .card{border-radius:20px;}
 }
 </style>
 

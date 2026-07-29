@@ -6,14 +6,16 @@
     <title>BeastBites - Deliveries</title>
     <style>
         :root { --green: #537457; --green-dark: #3c5540; --cream: #fdf3e7; --ink: #26301f; --amber: #c2823f; --amber-dark: #a5692c; }
+        html { -webkit-text-size-adjust: 100%; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
-        body { background: var(--cream); color: var(--ink); padding: 40px; }
+        body { background: var(--cream); color: var(--ink); padding: clamp(16px, 3vw, 40px); }
         .container { max-width: 1200px; margin: auto; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
         .header h1 { color: var(--green-dark); }
-        .controls { display: flex; gap: 12px; }
+        .controls { display: flex; gap: 12px; flex-wrap: wrap; }
         select { padding: 10px 14px; border: 2px solid var(--green); border-radius: 8px; background: white; color: var(--ink); font-size: 15px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+        table { width: 100%; border-collapse: collapse; background: white; min-width: 780px; }
         thead { background: var(--green); color: white; }
         th { padding: 15px; text-align: left; }
         td { padding: 15px; border-bottom: 1px solid #ececec; }
@@ -34,6 +36,12 @@
         .pagination button.active{ background:#c2823f; }
         .pagination button:hover{ background:#3c5540; }
         a{ color: var(--green-dark); text-decoration: none; }
+        @media (max-width: 760px) {
+            .header { align-items: flex-start; }
+            .controls { width: 100%; }
+            .controls select { width: 100%; }
+            th, td { padding: 12px 10px; }
+        }
     </style>
 </head>
 <body>
@@ -54,19 +62,21 @@
             </div>
         </div>
         <div class="loading" id="loading">Loading deliveries...</div>
-        <table id="deliveryTable" style="display:none;">
-            <thead>
-                <tr>
-                    <th>Delivery ID</th>
-                    <th>Subscription</th>
-                    <th>Assigned To</th>
-                    <th>Delivery Date</th>
-                    <th>Food</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+        <div class="table-wrap" id="deliveryTableWrap" style="display:none;">
+            <table id="deliveryTable">
+                <thead>
+                    <tr>
+                        <th>Delivery ID</th>
+                        <th>Subscription</th>
+                        <th>Assigned To</th>
+                        <th>Delivery Date</th>
+                        <th>Food</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
         <div id="pagination" class="pagination"></div>
         <div class="empty" id="empty">No deliveries found.</div>
     </div>
@@ -89,7 +99,7 @@
             currentPage = data.currentPage;
             totalPages = data.totalPages;
             document.getElementById("loading").style.display = "none";
-            document.getElementById("deliveryTable").style.display = "table";
+            document.getElementById("deliveryTableWrap").style.display = "block";
             render();
             renderPagination();
         }

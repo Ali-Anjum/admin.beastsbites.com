@@ -139,6 +139,29 @@
       margin-bottom: 50px;
     }
 
+    img,
+    video,
+    iframe {
+      max-width: 100%;
+      height: auto;
+    }
+
+    @media (max-width: 768px) {
+      .carousel-item .page-card {
+        width: calc(100% - 20px);
+        margin: 16px 10px 28px 10px;
+      }
+
+      .graph-container {
+        height: 60vh;
+      }
+
+      .show-more-button {
+        margin-top: 30px;
+        margin-bottom: 30px;
+      }
+    }
+
     #screenshotModal .page-screenshot {
       width: 100%;
       cursor: pointer;

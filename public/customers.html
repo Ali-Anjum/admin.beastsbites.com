@@ -6,8 +6,9 @@
 <title>Customers</title>
 <style>
 :root{--green:#537457;--green-dark:#3c5540;--cream:#fdf3e7;--white:#ffffff;}
+html{-webkit-text-size-adjust:100%;}
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
-body{background:var(--cream);padding:40px;}
+body{background:var(--cream);padding:clamp(16px,3vw,40px);}
 .container{max-width:1150px;margin:auto;}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;gap:15px;flex-wrap:wrap;}
 .header h1{color:var(--green-dark);font-size:34px;}
@@ -16,13 +17,21 @@ input{padding:12px;width:320px;border:2px solid var(--green);border-radius:8px;f
 input:focus{border-color:var(--green-dark);}
 button{padding:12px 18px;border:none;background:var(--green);color:white;border-radius:8px;cursor:pointer;font-size:15px;transition:.2s;}
 button:hover{background:var(--green-dark);} 
-table{width:100%;border-collapse:collapse;background:white;box-shadow:0 10px 25px rgba(0,0,0,.08);border-radius:10px;overflow:hidden;} 
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;box-shadow:0 10px 25px rgba(0,0,0,.08);}
+  table{width:100%;border-collapse:collapse;background:white;min-width:760px;}
 thead{background:var(--green);color:white;} 
 th,td{padding:16px;text-align:left;border-bottom:1px solid #eee;} 
 tbody tr:nth-child(even){background:#faf7f2;} 
 tbody tr:hover{background:#eef3ec;} 
 .loading,.empty{text-align:center;margin-top:25px;font-size:18px;}
 .pagination{margin-top:25px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;} .pagination button{padding:8px 15px;}.pagination button.active{background:#c2823f;} .row-actions button{padding:8px 12px;margin-right:8px;} @media(max-width:700px){.header{flex-direction:column;align-items:flex-start;}.controls{width:100%;}input{width:100%;}button{width:100%;}}
+@media(max-width:700px){
+  .header{flex-direction:column;align-items:flex-start;}
+  .controls{width:100%;}
+  input{width:100%;}
+  button{width:100%;}
+  th,td{padding:12px 10px;}
+}
 </style>
 </head>
 <body>
@@ -35,20 +44,22 @@ tbody tr:hover{background:#eef3ec;}
     </div>
   </div>
   <div id="loading" class="loading">Loading customers...</div>
-  <table id="table" style="display:none;">
-    <thead>
-      <tr>
-        <th>Customer ID</th>
-        <th>Name</th>
-        <th>Phone Number</th>
-        <th>Veg/Non-Veg</th>
-        <th>Plan</th>
-        <th>Meals</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
+  <div class="table-wrap" id="tableWrap" style="display:none;">
+    <table id="table">
+      <thead>
+        <tr>
+          <th>Customer ID</th>
+          <th>Name</th>
+          <th>Phone Number</th>
+          <th>Veg/Non-Veg</th>
+          <th>Plan</th>
+          <th>Meals</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
   <div id="empty" class="empty" style="display:none;">No customers found.</div>
   <div id="pagination" class="pagination"></div>
 </div>
@@ -72,15 +83,15 @@ async function load(page = 1){
     document.getElementById("addCustomerBtn").style.display = "inline-block";
   }
 
-  const table = document.getElementById("table");
+  const tableWrap = document.getElementById("tableWrap");
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
 
   if (data.customers.length === 0) {
-    table.style.display = "none";
+    tableWrap.style.display = "none";
     document.getElementById("empty").style.display = "block";
   } else {
-    table.style.display = "table";
+    tableWrap.style.display = "block";
     document.getElementById("empty").style.display = "none";
   }
 
