@@ -14,7 +14,6 @@ const subscriptionSchema = new mongoose.Schema({
 
   active_for_days: {
     type: Number,
-    enum: [7, 20, 30],
     default: 30
   },
 

@@ -20,8 +20,7 @@ test('valid customer payload passes validation', () => {
     phone_number: '03001234567',
     location: 'Lahore',
     diet_preference: 'Veg',
-    plan: 'Monthly',
-    active_for_days: '30',
+    active_till: '2026-08-31',
     meal_time: ['Lunch'],
     delivery_guy: 'delivery'
   });
@@ -36,14 +35,13 @@ test('invalid active-for-days is rejected', () => {
     phone_number: '03001234567',
     location: 'Lahore',
     diet_preference: 'Veg',
-    plan: 'Monthly',
-    active_for_days: '45',
+    active_till: '2026-07-01',
     meal_time: ['Lunch'],
     delivery_guy: 'delivery'
   });
 
   assert.equal(result.valid, false);
-  assert.match(result.errors.join(' '), /active_for_days/i);
+  assert.match(result.errors.join(' '), /active_till/i);
 });
 
 test('subscription window falls back to active-for-days when stop date is missing', () => {

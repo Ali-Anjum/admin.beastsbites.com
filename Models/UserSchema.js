@@ -49,11 +49,6 @@ const userSchema = new mongoose.Schema({
   is_active: {
     type: Boolean,
     default: true
-  },
-
-  photo_url: {
-    type: String,
-    default: ""
   }
 });
 

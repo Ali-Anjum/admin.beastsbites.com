@@ -170,22 +170,11 @@ button:disabled{
             <label><input type="radio" name="diet_preference" value="Non-Veg"> Non-Veg</label>
         </div>
 
-        <label for="plan">Plan</label>
-        <select id="plan" required>
-            <option value="" disabled selected>Select a plan</option>
-            <option value="Trial">Trial</option>
-            <option value="Weekly">Weekly</option>
-            <option value="Monthly">Monthly</option>
+        <label for="active_till">Active Till</label>
+        <select id="active_till" required>
+            <option value="" disabled selected>Select an expiry date</option>
         </select>
-
-        <label for="active_for_days">Active For</label>
-        <select id="active_for_days" required>
-            <option value="" disabled selected>Select subscription length</option>
-            <option value="7">7 days</option>
-            <option value="20">20 days</option>
-            <option value="30">30 days</option>
-        </select>
-        <div class="hint">This becomes the default subscription window used by the delivery scheduler.</div>
+        <div class="hint">Only upcoming dates are available. The customer status becomes Active until this date and Expired after it passes.</div>
 
         <label for="meal_time">Meal Time</label>
         <div class="checkbox-group">
@@ -203,10 +192,6 @@ button:disabled{
         <label for="comments">Comments</label>
         <textarea id="comments" placeholder="Any notes for this customer (optional)"></textarea>
 
-        <label for="purchase_proof">Purchase Proof (Optional)</label>
-        <input id="purchase_proof" type="text" placeholder="URL or link to purchase proof/receipt (optional)">
-        <div class="hint">Upload purchase proof to a file hosting service and paste the link here.</div>
-
         <button type="submit" id="submitBtn">Add Customer</button>
     </form>
 
@@ -218,6 +203,40 @@ button:disabled{
 const deliveryGuySelect = document.getElementById("delivery_guy");
 const submitBtn = document.getElementById("submitBtn");
 const messageEl = document.getElementById("message");
+const activeTillSelect = document.getElementById("active_till");
+
+function formatDateOption(date) {
+    return date.toLocaleDateString("en-GB", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+    });
+}
+
+function toDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function populateActiveTillOptions() {
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
+    for (let offset = 0; offset <= 30; offset += 1) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + offset);
+
+        const option = document.createElement("option");
+        option.value = toDateKey(date);
+        option.textContent = formatDateOption(date);
+        activeTillSelect.appendChild(option);
+    }
+}
+
+populateActiveTillOptions();
 
 async function loadDeliveryGuys() {
     try {
@@ -268,12 +287,10 @@ document.getElementById("customerForm").addEventListener("submit", async (e) => 
     const phone_number = document.getElementById("phone_number").value.trim();
     const location = document.getElementById("location").value.trim();
     const diet_preference = document.querySelector('input[name="diet_preference"]:checked')?.value;
-    const plan = document.getElementById("plan").value;
-    const active_for_days = document.getElementById("active_for_days").value;
+    const active_till = document.getElementById("active_till").value;
     const meal_time = Array.from(document.querySelectorAll('input[name="meal_time"]:checked')).map(el => el.value);
     const delivery_guy = document.getElementById("delivery_guy").value;
     const comments = document.getElementById("comments").value.trim();
-    const purchase_proof = document.getElementById("purchase_proof").value.trim();
 
     if (!diet_preference) {
         messageEl.className = "error";
@@ -292,12 +309,10 @@ document.getElementById("customerForm").addEventListener("submit", async (e) => 
         phone_number,
         location,
         diet_preference,
-        plan,
-        active_for_days,
+        active_till,
         meal_time,
         delivery_guy,
-        comments,
-        purchase_proof
+        comments
     };
 
     try {

@@ -21,13 +21,16 @@ function validateCustomerPayload(payload) {
     errors.push('diet_preference must be Veg or Non-Veg');
   }
 
-  if (!['Trial', 'Weekly', 'Monthly'].includes(payload?.plan)) {
-    errors.push('plan must be Trial, Weekly, or Monthly');
+  const normalizedActiveTill = normalizeDubaiDateKey(payload?.active_till);
+  if (!normalizedActiveTill) {
+    errors.push('active_till is required and must be a valid date');
   }
 
-  const parsedActiveForDays = Number(payload?.active_for_days);
-  if (![7, 20, 30].includes(parsedActiveForDays)) {
-    errors.push('active_for_days must be one of 7, 20, or 30');
+  if (normalizedActiveTill) {
+    const todayKey = getDubaiDateKey(new Date());
+    if (normalizedActiveTill < todayKey) {
+      errors.push('active_till must be today or a future date');
+    }
   }
 
   if (!Array.isArray(payload?.meal_time) || payload.meal_time.length === 0) {
@@ -41,8 +44,61 @@ function validateCustomerPayload(payload) {
   return {
     valid: errors.length === 0,
     errors,
-    parsedActiveForDays,
+    activeTill: normalizedActiveTill,
   };
+}
+
+function getDubaiDateKey(value) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Dubai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeDubaiDateKey(value) {
+  return getDubaiDateKey(value);
+}
+
+function getCustomerStatus(activeTill, referenceDate = new Date()) {
+  const activeTillKey = normalizeDubaiDateKey(activeTill);
+  if (!activeTillKey) {
+    return 'Expired';
+  }
+
+  const referenceKey = getDubaiDateKey(referenceDate);
+  return activeTillKey < referenceKey ? 'Expired' : 'Active';
+}
+
+function buildNextDateOptions(daysAhead = 30, referenceDate = new Date()) {
+  const options = [];
+  const baseDate = new Date(referenceDate);
+  baseDate.setHours(0, 0, 0, 0);
+
+  for (let offset = 0; offset <= daysAhead; offset += 1) {
+    const nextDate = new Date(baseDate);
+    nextDate.setDate(nextDate.getDate() + offset);
+    options.push(getDubaiDateKey(nextDate));
+  }
+
+  return options;
 }
 
 function getSubscriptionWindow(subscription, referenceDate) {
@@ -69,4 +125,8 @@ module.exports = {
   getPostLoginRedirect,
   validateCustomerPayload,
   getSubscriptionWindow,
+  getDubaiDateKey,
+  normalizeDubaiDateKey,
+  getCustomerStatus,
+  buildNextDateOptions,
 };

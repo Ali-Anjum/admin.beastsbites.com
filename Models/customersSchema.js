@@ -30,17 +30,15 @@ const customersSchema = new mongoose.Schema({
         required: true
     },
 
-    plan: {
+    active_till: {
         type: String,
-        enum: ["Trial", "Weekly", "Monthly"],
         required: true
     },
 
-    active_for_days: {
-        type: Number,
-        enum: [7, 20, 30],
-        required: true,
-        default: 30
+    status: {
+        type: String,
+        enum: ["Active", "Expired"],
+        default: "Active"
     },
 
     meal_time: {
@@ -63,12 +61,6 @@ const customersSchema = new mongoose.Schema({
     comments: {
         type: String,
         default: ""
-    },
-
-    purchase_proof: {
-        type: String,
-        default: "",
-        description: "Optional URL or file reference to purchase proof/receipt"
     }
 }, {
     timestamps: true

@@ -24,6 +24,9 @@ th,td{padding:16px;text-align:left;border-bottom:1px solid #eee;}
 tbody tr:nth-child(even){background:#faf7f2;} 
 tbody tr:hover{background:#eef3ec;} 
 .loading,.empty{text-align:center;margin-top:25px;font-size:18px;}
+.status-badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:bold;color:white;}
+.status-badge.active{background:#1e6b33;}
+.status-badge.expired{background:#b42318;}
 .pagination{margin-top:25px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;} .pagination button{padding:8px 15px;}.pagination button.active{background:#c2823f;} .row-actions button{padding:8px 12px;margin-right:8px;} @media(max-width:700px){.header{flex-direction:column;align-items:flex-start;}.controls{width:100%;}input{width:100%;}button{width:100%;}}
 @media(max-width:700px){
   .header{flex-direction:column;align-items:flex-start;}
@@ -52,7 +55,8 @@ tbody tr:hover{background:#eef3ec;}
           <th>Name</th>
           <th>Phone Number</th>
           <th>Veg/Non-Veg</th>
-          <th>Plan</th>
+          <th>Status</th>
+          <th>Active Till</th>
           <th>Meals</th>
           <th>Actions</th>
         </tr>
@@ -102,7 +106,8 @@ async function load(page = 1){
         <td>${customer.customers_name}</td>
         <td>${customer.phone_number}</td>
         <td>${customer.diet_preference || "-"}</td>
-        <td>${customer.plan || "-"}</td>
+        <td><span class="status-badge ${String(customer.status || "Expired").toLowerCase()}">${customer.status || "Expired"}</span></td>
+        <td>${customer.active_till || "-"}</td>
         <td>${(customer.meal_time || []).join(", ") || "-"}</td>
         <td class="row-actions">
           <button onclick="window.location.href='/dashboard/customers/${customer.customers_id}'">Open</button>

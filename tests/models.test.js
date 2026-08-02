@@ -28,14 +28,14 @@ test('delivery default delivery_id generated', async () => {
   assert.match(String(d.delivery_id), /^[0-9]{6}$/);
 });
 
-test('customer accepts allowed active_for_days values', async () => {
-  const c = new Customer({ customers_name: 'C', phone_number: '0123', location: 'X', diet_preference: 'Veg', active_for_days: 10, meal_time: ['Lunch'], delivery_guy: 'dgguy' });
+test('customer accepts active_till and status values', async () => {
+  const c = new Customer({ customers_name: 'C', phone_number: '0123', location: 'X', diet_preference: 'Veg', active_till: '2026-08-31', status: 'Active', meal_time: ['Lunch'], delivery_guy: 'dgguy' });
   const err = await c.validate().then(() => undefined).catch(e => e);
   assert.equal(err, undefined);
 });
 
 test('subscription accepts allowed active_for_days', async () => {
-  const s = new Subscription({ subscription_id: 1, client_id: 1, start_date: new Date(), stop_date: new Date(Date.now()+86400000), subscription_type: 'Weekly', active_for_days: 10, food_preference: 'Veg' });
+  const s = new Subscription({ subscription_id: 1, client_id: 1, start_date: new Date(), stop_date: new Date(Date.now()+86400000), subscription_type: 'Weekly', active_for_days: 12, food_preference: 'Veg' });
   const err = await s.validate().then(() => undefined).catch(e => e);
   assert.equal(err, undefined);
 });

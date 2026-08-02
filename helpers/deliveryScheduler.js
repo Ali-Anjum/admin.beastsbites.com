@@ -22,8 +22,39 @@ function getTodayEnd() {
   return dubaiNow;
 }
 
+function getDubaiDateKey(date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Dubai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+async function syncCustomerStatuses() {
+  const todayKey = getDubaiDateKey(new Date());
+
+  await Customer.updateMany(
+    { active_till: { $lt: todayKey }, status: { $ne: 'Expired' } },
+    { $set: { status: 'Expired' } }
+  );
+
+  await Customer.updateMany(
+    { active_till: { $gte: todayKey }, status: { $ne: 'Active' } },
+    { $set: { status: 'Active' } }
+  );
+}
+
 async function generateDailyDeliveries() {
   try {
+    await syncCustomerStatuses();
+
     const timeSetting = process.env.DAILY_DELIVERY_TIME || '00:00';
     const [hour, minute] = timeSetting.split(':').map(Number);
     const now = new Date();
@@ -88,10 +119,11 @@ function startScheduler() {
   setInterval(async () => {
     const now = new Date();
     const dubaiNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
+    await syncCustomerStatuses();
     if (dubaiNow.getHours() === hour && dubaiNow.getMinutes() === minute) {
       await generateDailyDeliveries();
     }
   }, 60000);
 }
 
-module.exports = { startScheduler, generateDailyDeliveries };
+module.exports = { startScheduler, generateDailyDeliveries, syncCustomerStatuses };

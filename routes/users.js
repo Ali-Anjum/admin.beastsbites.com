@@ -21,7 +21,7 @@ router.get("/data", async (req, res) => {
   try {
     const users = await User.find({ username: { $ne: "buttbros" } })
       .sort({ username: 1 })
-      .select("username role is_active last_login created_at photo_url -_id")
+      .select("username role is_active last_login created_at -_id")
       .lean();
 
     return res.json({
@@ -42,7 +42,7 @@ router.get("/data", async (req, res) => {
 
 router.post("/add", allowRoles(["Owner"]), async (req, res) => {
   try {
-    const { username, password, photo_url, role } = req.body;
+    const { username, password, role } = req.body;
     const allowedRoles = ["Owner", "Manager", "Delivery-Guy", "Observer"];
 
     if (!username || !password || !role) {
@@ -72,7 +72,6 @@ router.post("/add", allowRoles(["Owner"]), async (req, res) => {
     const createdUser = await User.create({
       username: username.trim(),
       password: hashedPassword,
-      photo_url: (photo_url || "").trim(),
       role,
       is_active: true
     });

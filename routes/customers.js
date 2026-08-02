@@ -9,10 +9,30 @@ const Subscription = require("../Models/SubscriptionSchema");
 const User = require("../Models/UserSchema");
 const { allowRoles } = require("../middleware/roleAuth");
 const logManagerAction = require("../middleware/logManagerAction");
-const { validateCustomerPayload } = require("../helpers/businessRules");
+const { validateCustomerPayload, getCustomerStatus, getDubaiDateKey } = require("../helpers/businessRules");
+const { syncCustomerStatuses } = require("../helpers/deliveryScheduler");
 router.use(MustAuth);
 router.use(allowRoles(["Owner", "Manager", "Observer"]));
 router.use(logManagerAction("customers-route"));
+
+function normalizeActiveTillValue(activeTill) {
+    return getDubaiDateKey(activeTill);
+}
+
+function getSubscriptionDaysFromActiveTill(activeTill) {
+    const todayKey = getDubaiDateKey(new Date());
+    const activeTillKey = normalizeActiveTillValue(activeTill);
+
+    if (!todayKey || !activeTillKey) {
+        return 30;
+    }
+
+    const todayDate = new Date(`${todayKey}T00:00:00Z`);
+    const activeTillDate = new Date(`${activeTillKey}T23:59:59.999Z`);
+    const diff = Math.ceil((activeTillDate.getTime() - todayDate.getTime()) / 86400000);
+
+    return Math.max(1, diff);
+}
 
 // ==============================
 // Customers Page
@@ -33,6 +53,8 @@ router.get("/",  (req, res) => {
 router.get("/data",  async (req, res) => {
 
     try {
+
+        await syncCustomerStatuses();
 
         if (0) {
             return res.status(403).json({
@@ -161,12 +183,10 @@ router.post("/add",  async (req, res) => {
             phone_number,
             location,
             diet_preference,
-            plan,
-            active_for_days,
+            active_till,
             meal_time,
             delivery_guy,
-            comments,
-            purchase_proof
+            comments
         } = req.body;
 
         const validation = validateCustomerPayload({
@@ -174,8 +194,7 @@ router.post("/add",  async (req, res) => {
             phone_number,
             location,
             diet_preference,
-            plan,
-            active_for_days,
+            active_till,
             meal_time,
             delivery_guy
         });
@@ -187,7 +206,7 @@ router.post("/add",  async (req, res) => {
             });
         }
 
-        const parsedActiveForDays = validation.parsedActiveForDays;
+        const normalizedActiveTill = validation.activeTill;
 
         if (!["Veg", "Non-Veg"].includes(diet_preference)) {
             return res.status(400).json({
@@ -245,12 +264,11 @@ router.post("/add",  async (req, res) => {
                 phone_number: phone_number.trim(),
                 location: location.trim(),
                 diet_preference,
-                plan,
-                active_for_days: parsedActiveForDays,
+                active_till: normalizedActiveTill,
+                status: getCustomerStatus(normalizedActiveTill),
                 meal_time,
                 delivery_guy,
-                comments: (comments || "").trim(),
-                purchase_proof: (purchase_proof || "").trim()
+                comments: (comments || "").trim()
                 });
             } catch (createErr) {
                 attempts += 1;
@@ -264,8 +282,8 @@ router.post("/add",  async (req, res) => {
         }
 
         const subscriptionStartDate = new Date();
-        const subscriptionStopDate = new Date(subscriptionStartDate);
-        subscriptionStopDate.setDate(subscriptionStopDate.getDate() + parsedActiveForDays);
+        const subscriptionStopDate = new Date(`${normalizedActiveTill}T23:59:59.999Z`);
+        const subscriptionDays = getSubscriptionDaysFromActiveTill(normalizedActiveTill);
 
         let subscription;
         let subscriptionAttempts = 0;
@@ -277,8 +295,8 @@ router.post("/add",  async (req, res) => {
                     client_id: customer.customers_id,
                     start_date: subscriptionStartDate,
                     stop_date: subscriptionStopDate,
-                    subscription_type: plan === "Monthly" ? "Monthly" : plan === "Weekly" ? "Weekly" : "Daily",
-                    active_for_days: parsedActiveForDays,
+                    subscription_type: "Daily",
+                    active_for_days: subscriptionDays,
                     food_preference: diet_preference,
                     status: "Active"
                 });
@@ -318,6 +336,7 @@ router.post("/add",  async (req, res) => {
 router.get("/:id", async (req, res) => {
 
     try {
+        await syncCustomerStatuses();
         const customerId = parseInt(req.params.id, 10);
         const wantsJson = req.query.format === "json" || req.headers.accept?.includes("application/json");
 
@@ -362,10 +381,16 @@ router.patch("/:id", async (req, res) => {
             return res.status(404).json({ success: false, message: "Customer not found." });
         }
 
-        const { customers_name, phone_number, location, diet_preference, plan, meal_time, delivery_guy, comments, purchase_proof } = req.body;
+        const { customers_name, phone_number, location, diet_preference, active_till, meal_time, delivery_guy, comments } = req.body;
 
-        if (!customers_name || !phone_number || !location || !diet_preference || !plan || !Array.isArray(meal_time) || meal_time.length === 0 || !delivery_guy) {
-            return res.status(400).json({ success: false, message: "Customer name, phone number, veg/non-veg, plan, at least one meal time and delivery guy are required." });
+        if (!customers_name || !phone_number || !location || !diet_preference || !active_till || !Array.isArray(meal_time) || meal_time.length === 0 || !delivery_guy) {
+            return res.status(400).json({ success: false, message: "Customer name, phone number, veg/non-veg, active till, at least one meal time and delivery guy are required." });
+        }
+
+        const normalizedActiveTill = normalizeActiveTillValue(active_till);
+
+        if (!normalizedActiveTill) {
+            return res.status(400).json({ success: false, message: "active_till must be a valid date." });
         }
 
         if (!["Veg", "Non-Veg"].includes(diet_preference)) {
@@ -400,14 +425,28 @@ router.patch("/:id", async (req, res) => {
                     phone_number: normalizedPhone,
                     location: (location || "").trim(),
                     diet_preference,
-                    plan,
+                    active_till: normalizedActiveTill,
+                    status: getCustomerStatus(normalizedActiveTill),
                     meal_time,
                     delivery_guy,
-                    comments: (comments || "").trim(),
-                    purchase_proof: (purchase_proof || "").trim()
+                    comments: (comments || "").trim()
                 }
             },
             { new: true }
+        );
+
+        const updatedSubscriptionStopDate = new Date(`${normalizedActiveTill}T23:59:59.999Z`);
+        const updatedSubscriptionDays = getSubscriptionDaysFromActiveTill(normalizedActiveTill);
+
+        await Subscription.findOneAndUpdate(
+            { client_id: customer.customers_id },
+            {
+                $set: {
+                    stop_date: updatedSubscriptionStopDate,
+                    active_for_days: updatedSubscriptionDays,
+                    status: "Active"
+                }
+            }
         );
 
         res.json({ success: true, message: "Customer updated successfully.", customer: updatedCustomer });

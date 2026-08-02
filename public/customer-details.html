@@ -53,12 +53,11 @@
             <option value="Veg">Veg</option>
             <option value="Non-Veg">Non-Veg</option>
           </select>
-          <label>Plan</label>
-          <select id="plan">
-            <option value="Trial">Trial</option>
-            <option value="Weekly">Weekly</option>
-            <option value="Monthly">Monthly</option>
-          </select>
+          <label>Status</label>
+          <div id="statusBadge" class="badge">Loading...</div>
+
+          <label>Active Till</label>
+          <select id="active_till"></select>
           <label>Meals</label>
           <div class="checkbox-group">
             <label><input type="checkbox" name="meal_time" value="Breakfast" /> Breakfast</label>
@@ -69,8 +68,6 @@
           <select id="delivery_guy"></select>
           <label>Comments</label>
           <textarea id="comments"></textarea>
-          <label>Purchase Proof (Optional)</label>
-          <input id="purchase_proof" placeholder="URL or link to purchase proof/receipt" />
           <button type="submit">Update Customer</button>
         </form>
       </div>
@@ -91,6 +88,13 @@
     const customerId = window.location.pathname.split('/').pop();
     const messageEl = document.getElementById('message');
 
+    function toDateKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
     async function loadCustomer() {
       const res = await fetch(`/dashboard/customers/${customerId}?format=json`, { credentials: 'include' });
       const data = await res.json();
@@ -105,7 +109,8 @@
       document.getElementById('phone_number').value = customer.phone_number;
       document.getElementById('location').value = customer.location || '';
       document.getElementById('diet_preference').value = customer.diet_preference;
-      document.getElementById('plan').value = customer.plan;
+      document.getElementById('statusBadge').textContent = customer.status || 'Expired';
+      document.getElementById('statusBadge').style.background = (customer.status || 'Expired') === 'Active' ? '#1e6b33' : '#b42318';
       document.querySelectorAll('input[name="meal_time"]').forEach(box => {
         box.checked = (customer.meal_time || []).includes(box.value);
       });
@@ -121,7 +126,19 @@
       });
       deliveryGuySelect.value = customer.delivery_guy;
       document.getElementById('comments').value = customer.comments || '';
-      document.getElementById('purchase_proof').value = customer.purchase_proof || '';
+      const activeTillSelect = document.getElementById('active_till');
+      activeTillSelect.innerHTML = '';
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      for (let offset = 0; offset <= 30; offset += 1) {
+        const optionDate = new Date(today);
+        optionDate.setDate(optionDate.getDate() + offset);
+        const option = document.createElement('option');
+        option.value = toDateKey(optionDate);
+        option.textContent = optionDate.toLocaleDateString('en-GB', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+        activeTillSelect.appendChild(option);
+      }
+      activeTillSelect.value = customer.active_till || '';
 
       const subscriptionInfo = document.getElementById('subscriptionInfo');
       const subscription = data.subscription;
@@ -143,11 +160,10 @@
         phone_number: document.getElementById('phone_number').value.trim(),
         location: document.getElementById('location').value.trim(),
         diet_preference: document.getElementById('diet_preference').value,
-        plan: document.getElementById('plan').value,
+        active_till: document.getElementById('active_till').value,
         meal_time: Array.from(document.querySelectorAll('input[name="meal_time"]:checked')).map(el => el.value),
         delivery_guy: document.getElementById('delivery_guy').value,
-        comments: document.getElementById('comments').value.trim(),
-        purchase_proof: document.getElementById('purchase_proof').value.trim()
+        comments: document.getElementById('comments').value.trim()
       };
       const res = await fetch(`/dashboard/customers/${customerId}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();

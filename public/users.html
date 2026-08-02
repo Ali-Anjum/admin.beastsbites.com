@@ -69,9 +69,6 @@ input,select{width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;}
       <label>Password</label>
       <input id="password" type="password" required>
 
-      <label>Photo URL (Optional)</label>
-      <input id="photo_url" type="text" placeholder="https://.../photo.jpg">
-
       <label>Role</label>
       <select id="role" required>
         <option value="Observer">Observer</option>
@@ -184,7 +181,6 @@ document.getElementById("createUserForm").addEventListener("submit", async (e) =
   const body = {
     username: document.getElementById("username").value.trim(),
     password: document.getElementById("password").value,
-    photo_url: document.getElementById("photo_url").value.trim(),
     role: document.getElementById("role").value
   };
 
