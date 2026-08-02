@@ -27,7 +27,7 @@ try {
     }
 
     if (!response) {
-        return res.sendStatus(401);
+        return res.redirect('/login?error=invalid-password');
     }
 
     let isPasswordValid = false;
@@ -45,7 +45,7 @@ try {
     }
 
     if (!isPasswordValid) {
-        return res.sendStatus(401);
+        return res.redirect('/login?error=invalid-password');
     }
 
     const token = generateToken(response.username, response.role);

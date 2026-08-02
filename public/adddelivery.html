@@ -140,6 +140,9 @@ async function loadDeliveryGuys() {
   }
 }
 
+const urlParams = new URLSearchParams(window.location.search);
+const preselectedCustomerId = urlParams.get("customer_id");
+
 async function loadCustomers() {
   try {
     const res = await fetch("/dashboard/delivery/customers-list", { credentials: "include" });
@@ -153,6 +156,10 @@ async function loadCustomers() {
       option.textContent = customer.customers_name;
       select.appendChild(option);
     });
+
+    if (preselectedCustomerId && Array.from(select.options).some(opt => opt.value === preselectedCustomerId)) {
+      select.value = preselectedCustomerId;
+    }
   } catch (err) {
     console.error(err);
   }

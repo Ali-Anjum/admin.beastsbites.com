@@ -174,10 +174,20 @@ button:hover{
         </button>
 
     </form>
+    <p id="errorMessage" class="note" style="color:#b42318; display:none;"></p>
 
     <p class="note">
         Not affiliated with public access. Contact admin for credentials.
     </p>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get('error');
+      if (error === 'invalid-password') {
+        const errorMessage = document.getElementById('errorMessage');
+        errorMessage.textContent = 'Invalid username or password.';
+        errorMessage.style.display = 'block';
+      }
+    </script>
 
 </div>
 

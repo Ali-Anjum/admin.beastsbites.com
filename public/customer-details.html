@@ -41,7 +41,10 @@
   <div class="container">
     <div class="topbar">
       <h1 id="customerTitle">Customer Details</h1>
-      <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <button id="addDeliveryBtn" type="button">New Delivery</button>
+        <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
+      </div>
     </div>
     <div id="message" class="message"></div>
     <div class="grid">
@@ -104,6 +107,10 @@
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       await fetch('/login/logout', { method: 'POST', credentials: 'include' });
       window.location.href = '/login';
+    });
+
+    document.getElementById('addDeliveryBtn').addEventListener('click', () => {
+      window.location.href = `/dashboard/delivery/add?customer_id=${customerId}`;
     });
 
     async function loadCustomer() {

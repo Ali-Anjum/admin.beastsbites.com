@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("node:path");
+const mongoose = require("mongoose");
 const { Document, Paragraph, TextRun, ImageRun, Packer } = require("docx");
 
 const MustAuth = require("../middleware/MustAuth");
@@ -281,6 +282,28 @@ router.get("/export/docx", allowRoles(["Owner", "Manager"]), async (req, res) =>
 });
 
 router.post("/import", allowRoles(["Owner", "Manager"]), async (req, res) => {
+  const insertedIds = {
+    users: [],
+    customers: [],
+    subscriptions: [],
+    deliveries: [],
+    logs: []
+  };
+
+  const rollback = async () => {
+    try {
+      await Promise.all([
+        User.deleteMany({ _id: { $in: insertedIds.users } }),
+        Customer.deleteMany({ _id: { $in: insertedIds.customers } }),
+        Subscription.deleteMany({ _id: { $in: insertedIds.subscriptions } }),
+        Delivery.deleteMany({ _id: { $in: insertedIds.deliveries } }),
+        Log.deleteMany({ _id: { $in: insertedIds.logs } })
+      ]);
+    } catch (rollbackErr) {
+      console.error("Rollback error:", rollbackErr);
+    }
+  };
+
   try {
     const { collections } = req.body;
 
@@ -298,13 +321,14 @@ router.post("/import", allowRoles(["Owner", "Manager"]), async (req, res) => {
         if (user.username === "buttbros") continue;
         const exists = await User.findOne({ user_id: user.user_id });
         if (!exists) {
-          await User.create({
+          const created = await User.create({
             user_id: user.user_id,
             username: user.username,
             password: user.password,
             role: user.role,
             is_active: user.is_active || true
           });
+          insertedIds.users.push(created._id);
           importedCount++;
         }
       }
@@ -314,7 +338,8 @@ router.post("/import", allowRoles(["Owner", "Manager"]), async (req, res) => {
       for (const customer of collections.customers) {
         const exists = await Customer.findOne({ customers_id: customer.customers_id });
         if (!exists) {
-          await Customer.create(customer);
+          const created = await Customer.create(customer);
+          insertedIds.customers.push(created._id);
           importedCount++;
         }
       }
@@ -324,7 +349,8 @@ router.post("/import", allowRoles(["Owner", "Manager"]), async (req, res) => {
       for (const subscription of collections.subscriptions) {
         const exists = await Subscription.findOne({ subscription_id: subscription.subscription_id });
         if (!exists) {
-          await Subscription.create(subscription);
+          const created = await Subscription.create(subscription);
+          insertedIds.subscriptions.push(created._id);
           importedCount++;
         }
       }
@@ -334,7 +360,8 @@ router.post("/import", allowRoles(["Owner", "Manager"]), async (req, res) => {
       for (const delivery of collections.deliveries) {
         const exists = await Delivery.findOne({ delivery_id: delivery.delivery_id });
         if (!exists) {
-          await Delivery.create(delivery);
+          const created = await Delivery.create(delivery);
+          insertedIds.deliveries.push(created._id);
           importedCount++;
         }
       }
@@ -342,7 +369,8 @@ router.post("/import", allowRoles(["Owner", "Manager"]), async (req, res) => {
 
     if (collections.logs && Array.isArray(collections.logs)) {
       for (const log of collections.logs) {
-        await Log.create(log);
+        const created = await Log.create(log);
+        insertedIds.logs.push(created._id);
         importedCount++;
       }
     }
@@ -354,9 +382,10 @@ router.post("/import", allowRoles(["Owner", "Manager"]), async (req, res) => {
     });
   } catch (err) {
     console.error("Import error:", err);
+    await rollback();
     return res.status(500).json({
       success: false,
-      message: "Failed to import data. " + err.message
+      message: "Failed to import data. Database rolled back to previous state. " + err.message
     });
   }
 });
