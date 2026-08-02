@@ -178,14 +178,24 @@ router.get("/data", async (req, res) => {
   try {
     const role = req.user?.role;
     const username = req.user?.username;
+    const canViewUsers = role === "Owner" || role === "Manager";
 
     const deliveryQuery = role === "Delivery-Guy"
       ? { assigned_to_username: username }
       : {};
 
-    const [deliveryCount, customerCount] = await Promise.all([
+    const userQuery = { username: { $ne: "buttbros" } };
+
+    const [deliveryCount, customerCount, userCount, users] = await Promise.all([
       Delivery.countDocuments(deliveryQuery),
       Customer.countDocuments({})
+      ,canViewUsers ? User.countDocuments(userQuery) : Promise.resolve(0),
+      canViewUsers
+        ? User.find(userQuery)
+            .sort({ username: 1 })
+            .select("user_id username role is_active last_login created_at photo_url -_id")
+            .lean()
+        : Promise.resolve([])
     ]);
 
     const capabilities = {
@@ -194,7 +204,8 @@ router.get("/data", async (req, res) => {
       canAddDelivery: role !== "Delivery-Guy",
       canAddCustomer: role !== "Delivery-Guy",
       canManageUsers: role === "Owner",
-      canViewLogs: role === "Owner" || role === "Manager"
+      canViewLogs: role === "Owner" || role === "Manager",
+      canViewUsers
     };
 
     return res.json({
@@ -205,8 +216,10 @@ router.get("/data", async (req, res) => {
       },
       counts: {
         deliveries: deliveryCount,
-        customers: customerCount
+        customers: customerCount,
+        users: userCount
       },
+      users,
       capabilities
     });
   } catch (err) {

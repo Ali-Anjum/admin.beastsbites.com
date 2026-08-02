@@ -26,6 +26,17 @@ body{margin:0;background:var(--cream);color:var(--ink);padding:clamp(16px,3vw,24
 .card h3{margin:0 0 10px;color:var(--green-dark);}
 .card p{margin:0 0 12px;}
 .card a{display:inline-block;text-decoration:none;padding:10px 12px;border-radius:8px;background:var(--green);color:#fff;font-weight:bold;}
+.users-panel{margin-top:18px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.08);}
+.users-panel h2{margin:0 0 14px;color:var(--green-dark);}
+.users-toolbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.users-toolbar p{margin:0;color:#5e6755;}
+.users-table-wrap{overflow-x:auto;}
+.users-table{width:100%;border-collapse:collapse;min-width:640px;}
+.users-table th,.users-table td{padding:12px 10px;border-bottom:1px solid #e7e2d8;text-align:left;vertical-align:top;}
+.users-table th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#5d6958;background:#fbf7f0;}
+.status-pill{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:bold;}
+.status-pill.active{background:#e6f4ea;color:#1e6b33;}
+.status-pill.inactive{background:#fdecec;color:#b42318;}
 .hidden{display:none;}
 .owner-box{margin-top:18px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.08);}
 .backup-actions{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;}
@@ -69,6 +80,12 @@ button{margin-top:14px;padding:10px 14px;border:none;border-radius:8px;backgroun
             <a href="/dashboard/customers">Open Customers</a>
         </div>
 
+        <div class="card hidden" id="usersCard">
+            <h3>Users</h3>
+            <p id="userCount">0 users</p>
+            <a href="#usersSection">View Users</a>
+        </div>
+
         <div class="card" id="addDeliveryCard">
             <h3>Add Delivery</h3>
             <p>Create and assign orders to delivery guys.</p>
@@ -79,6 +96,31 @@ button{margin-top:14px;padding:10px 14px;border:none;border-radius:8px;backgroun
             <h3>Logs</h3>
             <p>View manager activity audit logs.</p>
             <a href="/logs">Open Logs</a>
+        </div>
+    </div>
+
+    <div class="users-panel hidden" id="usersSection">
+        <div class="users-toolbar">
+            <h2 style="margin: 0;">Users</h2>
+            <p id="usersMeta">Loading users...</p>
+        </div>
+        <div class="users-table-wrap">
+            <table class="users-table" aria-label="Dashboard users list">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Last Login</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr>
+                        <td colspan="5">Loading users...</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -125,6 +167,44 @@ button{margin-top:14px;padding:10px 14px;border:none;border-radius:8px;backgroun
 <script>
 let caps = null;
 
+function formatDate(value){
+    if(!value) return "-";
+
+    const date = new Date(value);
+    if(Number.isNaN(date.getTime())) return "-";
+
+    return date.toLocaleString();
+}
+
+function renderUsers(users){
+    const body = document.getElementById("usersTableBody");
+    const meta = document.getElementById("usersMeta");
+    const count = users.length;
+
+    document.getElementById("userCount").textContent = `${count} users`;
+    meta.textContent = count ? `${count} user${count === 1 ? "" : "s"} loaded` : "No users found.";
+
+    if(!count){
+        body.innerHTML = '<tr><td colspan="5">No users to display.</td></tr>';
+        return;
+    }
+
+    body.innerHTML = users.map((user) => {
+        const activeClass = user.is_active ? "active" : "inactive";
+        const activeLabel = user.is_active ? "Active" : "Inactive";
+
+        return `
+            <tr>
+                <td>${user.user_id ?? "-"}</td>
+                <td>${user.username ?? "-"}</td>
+                <td>${user.role ?? "-"}</td>
+                <td><span class="status-pill ${activeClass}">${activeLabel}</span></td>
+                <td>${formatDate(user.last_login || user.created_at)}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
 async function loadDashboard(){
     const res = await fetch("/dashboard/data", { credentials: "include" });
     const data = await res.json();
@@ -139,9 +219,19 @@ async function loadDashboard(){
     document.getElementById("who").textContent = `${data.user.username} (${data.user.role})`;
     document.getElementById("deliveryCount").textContent = `${data.counts.deliveries} deliveries`;
     document.getElementById("customerCount").textContent = `${data.counts.customers} customers`;
+    document.getElementById("userCount").textContent = `${data.counts.users || 0} users`;
 
     if(!caps.canViewCustomers){
         document.getElementById("customersCard").classList.add("hidden");
+    }
+
+    if(caps.canViewUsers){
+        document.getElementById("usersCard").classList.remove("hidden");
+        document.getElementById("usersSection").classList.remove("hidden");
+        renderUsers(Array.isArray(data.users) ? data.users : []);
+    } else {
+        document.getElementById("usersCard").classList.add("hidden");
+        document.getElementById("usersSection").classList.add("hidden");
     }
 
     if(!caps.canAddDelivery){
