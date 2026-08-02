@@ -140,6 +140,23 @@ button:disabled{
     font-weight:normal;
 }
 
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom:16px;
+}
+
+.logout-btn{
+    width:auto;
+    margin-top:0;
+    padding:10px 14px;
+    background:#b42318;
+}
+
+.logout-btn:hover{background:#8f2017;}
+
 @media (max-width: 640px){
     .card{padding:24px 18px;border-radius:12px;}
     .radio-group,
@@ -152,7 +169,10 @@ button:disabled{
 <body>
 
 <div class="card">
-    <h1>Add Customer</h1>
+    <div class="topbar">
+        <h1>Add Customer</h1>
+        <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
+    </div>
 
     <form id="customerForm">
         <label for="customers_name">Customer Name</label>
@@ -280,6 +300,11 @@ async function loadDeliveryGuys() {
 
 loadDeliveryGuys();
 
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await fetch("/login/logout", { method: "POST", credentials: "include" });
+    window.location.href = "/login";
+});
+
 document.getElementById("customerForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -313,10 +338,11 @@ document.getElementById("customerForm").addEventListener("submit", async (e) => 
         meal_time,
         delivery_guy,
         comments
-    };
-
-    try {
-        const res = await fetch("/dashboard/customers/add", {
+    });
+    </script>
+    <script src="/app-header.js"></script>
+    </body>
+    </html>
             method: "POST",
             credentials: "include",
             headers: {

@@ -13,6 +13,15 @@ test('login page is served', async () => {
   assert.equal(res.status, 200);
 });
 
+test('login page clears auth cookie for signed-in users', async () => {
+  const res = await request(app)
+    .get('/login')
+    .set('Cookie', ['token=fake-token']);
+
+  assert.equal(res.status, 200);
+  assert.match(String(res.headers['set-cookie'] || []), /token=/i);
+});
+
 test('logout clears auth cookie', async () => {
   const res = await request(app).post('/login/logout');
   assert.equal(res.status, 302);

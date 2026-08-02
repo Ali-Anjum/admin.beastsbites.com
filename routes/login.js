@@ -8,11 +8,12 @@ const { generateToken } = require('../helpers/JwtGetToken')
 const MiddlwareVerfiesLogin = require('../middleware/auth')
 const { getPostLoginRedirect } = require('../helpers/businessRules')
 router.get('/', (req, res) => {
+    res.clearCookie("token", { path: "/" });
     res.sendFile(path.join(__dirname, "../public", "login.html"));
 });
 
 router.post('/logout', (req, res) => {
-    res.clearCookie("token");
+    res.clearCookie("token", { path: "/" });
     return res.redirect("/login");
 });
 

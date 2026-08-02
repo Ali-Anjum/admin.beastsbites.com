@@ -197,7 +197,7 @@ router.get("/data", async (req, res) => {
       canAddDelivery: role !== "Delivery-Guy",
       canAddCustomer: role !== "Delivery-Guy",
       canManageUsers: role === "Owner",
-      canViewLogs: role === "Owner" || role === "Manager",
+      canViewLogs: role === "Owner",
       canViewUsers
     };
 

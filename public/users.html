@@ -16,6 +16,8 @@ body{background:var(--cream);padding:clamp(16px,3vw,40px);color:#26301f;}
 button{padding:12px 18px;border:none;background:var(--green);color:white;border-radius:8px;cursor:pointer;font-size:15px;transition:.2s;}
 button:hover{background:var(--green-dark);}
 .secondary{background:var(--amber);}
+.logout-btn{background:#b42318;}
+.logout-btn:hover{background:#8f2017;}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;box-shadow:0 10px 25px rgba(0,0,0,.08);background:white;}
 table{width:100%;border-collapse:collapse;min-width:820px;}
 thead{background:var(--green);color:white;}
@@ -38,6 +40,7 @@ input,select{width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;}
   <div class="header">
     <h1>Users</h1>
     <div class="controls">
+      <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
       <button id="backBtn" class="secondary" type="button">Back to Dashboard</button>
       <button id="addUserBtn" style="display:none;" type="button">+ Add User</button>
     </div>
@@ -171,6 +174,11 @@ document.getElementById("backBtn").addEventListener("click", () => {
   window.location.href = "/dashboard";
 });
 
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  await fetch("/login/logout", { method: "POST", credentials: "include" });
+  window.location.href = "/login";
+});
+
 document.getElementById("addUserBtn").addEventListener("click", () => {
   document.getElementById("createPanel").classList.remove("hidden");
   document.getElementById("createUserForm").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -226,5 +234,6 @@ document.getElementById("passwordForm").addEventListener("submit", async (e) => 
 
 loadUsers();
 </script>
+<script src="/app-header.js"></script>
 </body>
 </html>

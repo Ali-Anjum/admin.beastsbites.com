@@ -17,6 +17,8 @@ input{padding:12px;width:320px;border:2px solid var(--green);border-radius:8px;f
 input:focus{border-color:var(--green-dark);}
 button{padding:12px 18px;border:none;background:var(--green);color:white;border-radius:8px;cursor:pointer;font-size:15px;transition:.2s;}
 button:hover{background:var(--green-dark);} 
+.logout-btn{background:#b42318;}
+.logout-btn:hover{background:#8f2017;}
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;box-shadow:0 10px 25px rgba(0,0,0,.08);}
   table{width:100%;border-collapse:collapse;background:white;min-width:760px;}
 thead{background:var(--green);color:white;} 
@@ -42,6 +44,7 @@ tbody tr:hover{background:#eef3ec;}
   <div class="header">
     <h1>Customers</h1>
     <div class="controls">
+      <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
       <input id="search" placeholder="Search customer or phone...">
       <button id="addCustomerBtn" style="display:none;" onclick="location.href='/dashboard/customers/add'">+ Add Customer</button>
     </div>
@@ -135,7 +138,13 @@ document.getElementById("search").addEventListener("input", () => {
   timer = setTimeout(() => load(1), 300);
 });
 
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  await fetch("/login/logout", { method: "POST", credentials: "include" });
+  window.location.href = "/login";
+});
+
 load();
 </script>
+<script src="/app-header.js"></script>
 </body>
 </html>

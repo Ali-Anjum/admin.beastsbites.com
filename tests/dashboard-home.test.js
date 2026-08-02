@@ -94,6 +94,7 @@ test('dashboard data includes users for manager roles', async () => {
   assert.equal(res.body.success, true);
   assert.equal(res.body.counts.users, 1);
   assert.equal(res.body.capabilities.canViewUsers, true);
+  assert.equal(res.body.capabilities.canViewLogs, false);
   assert.equal(res.body.users, undefined);
 });
 

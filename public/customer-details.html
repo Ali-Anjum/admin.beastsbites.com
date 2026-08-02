@@ -25,6 +25,9 @@
     table { width:100%; border-collapse:collapse; margin-top:16px; min-width:640px; }
     th, td { border-bottom:1px solid #ddd; padding:10px; text-align:left; }
     .badge { display:inline-block; padding:6px 10px; border-radius:999px; color:white; background:var(--amber); }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .logout-btn { margin-top:0; background:#b42318; }
+    .logout-btn:hover { background:#8f2017; }
     a { color:var(--green-dark); }
     @media (max-width: 800px) {
       .container { padding:18px; }
@@ -36,7 +39,10 @@
 </head>
 <body>
   <div class="container">
-    <h1 id="customerTitle">Customer Details</h1>
+    <div class="topbar">
+      <h1 id="customerTitle">Customer Details</h1>
+      <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
+    </div>
     <div id="message" class="message"></div>
     <div class="grid">
       <div class="card">
@@ -94,6 +100,11 @@
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     }
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('/login/logout', { method: 'POST', credentials: 'include' });
+      window.location.href = '/login';
+    });
 
     async function loadCustomer() {
       const res = await fetch(`/dashboard/customers/${customerId}?format=json`, { credentials: 'include' });
@@ -178,5 +189,6 @@
 
     loadCustomer();
   </script>
+  <script src="/app-header.js"></script>
 </body>
 </html>

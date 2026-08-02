@@ -18,6 +18,8 @@ input, select, textarea{ width:100%; padding:12px; border:2px solid #ddd; border
 .checkbox-group label{ margin:0; display:flex; align-items:center; gap:6px; font-weight:normal; }
 button{ width:100%; margin-top:25px; padding:14px; background:var(--green); color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; }
 button:hover{ background:var(--green-dark); }
+.logout-btn{ width:auto; margin-top:0; padding:10px 14px; background:#b42318; }
+.logout-btn:hover{ background:#8f2017; }
 #message{ margin-top:18px; text-align:center; font-weight:bold; }
 .success{ color:green; }
 .error{ color:red; }
@@ -30,7 +32,10 @@ button:hover{ background:var(--green-dark); }
 </head>
 <body>
 <div class="card">
-  <h1>Add Delivery</h1>
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:25px;">
+    <h1 style="margin:0;">Add Delivery</h1>
+    <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
+  </div>
   <form id="deliveryForm">
     <label>Customer Name</label>
     <input type="text" id="customer_name" list="customerOptions" placeholder="Type or select customer" required>
@@ -153,6 +158,12 @@ async function loadCustomers() {
 
 loadDeliveryGuys();
 loadCustomers();
+
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  await fetch("/login/logout", { method: "POST", credentials: "include" });
+  window.location.href = "/login";
+});
 </script>
+<script src="/app-header.js"></script>
 </body>
 </html>

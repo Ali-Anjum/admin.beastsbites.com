@@ -9,11 +9,11 @@ const router = express.Router();
 
 router.use(MustAuth);
 
-router.get("/", allowRoles(["Owner", "Manager"]), (req, res) => {
+router.get("/", allowRoles(["Owner"]), (req, res) => {
   res.sendFile(path.join(__dirname, "../public/logs.html"));
 });
 
-router.get("/data", allowRoles(["Owner", "Manager"]), async (req, res) => {
+router.get("/data", allowRoles(["Owner"]), async (req, res) => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = 30;
