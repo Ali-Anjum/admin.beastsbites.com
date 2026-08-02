@@ -193,7 +193,7 @@ router.get("/data", async (req, res) => {
       canViewUsers
         ? User.find(userQuery)
             .sort({ username: 1 })
-            .select("user_id username role is_active last_login created_at photo_url -_id")
+            .select("username role is_active last_login created_at photo_url -_id")
             .lean()
         : Promise.resolve([])
     ]);
@@ -233,13 +233,13 @@ router.get("/data", async (req, res) => {
 
 router.post("/users/add", allowRoles(["Owner"]), async (req, res) => {
   try {
-    const { user_id, username, password, photo_url, role } = req.body;
+    const { username, password, photo_url, role } = req.body;
     const allowedRoles = ["Owner", "Manager", "Delivery-Guy", "Observer"];
 
-    if (!user_id || !username || !password || !role) {
+    if (!username || !password || !role) {
       return res.status(400).json({
         success: false,
-        message: "user_id, username, password and role are required."
+        message: "username, password and role are required."
       });
     }
 
@@ -247,14 +247,6 @@ router.post("/users/add", allowRoles(["Owner"]), async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Invalid role."
-      });
-    }
-
-    const existingById = await User.findOne({ user_id: Number(user_id) });
-    if (existingById) {
-      return res.status(400).json({
-        success: false,
-        message: "user_id already exists."
       });
     }
 
@@ -269,7 +261,6 @@ router.post("/users/add", allowRoles(["Owner"]), async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const createdUser = await User.create({
-      user_id: Number(user_id),
       username: username.trim(),
       password: hashedPassword,
       photo_url: (photo_url || "").trim(),
@@ -281,7 +272,6 @@ router.post("/users/add", allowRoles(["Owner"]), async (req, res) => {
       success: true,
       message: "User created successfully.",
       user: {
-        user_id: createdUser.user_id,
         username: createdUser.username,
         role: createdUser.role,
         is_active: createdUser.is_active

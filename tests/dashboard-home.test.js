@@ -89,7 +89,6 @@ function buildApp(route) {
 test('dashboard data includes users for manager roles', async () => {
   const users = [
     {
-      user_id: 1001,
       username: 'alice',
       role: 'Manager',
       is_active: true,

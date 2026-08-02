@@ -1,10 +1,15 @@
 const mongoose = require("mongoose");
 
+function generateUserId() {
+  return Math.floor(100000 + Math.random() * 900000);
+}
+
 const userSchema = new mongoose.Schema({
   user_id: {
     type: Number,
     required: true,
-    unique: true
+    unique: true,
+    default: generateUserId
   },
 
   username: {

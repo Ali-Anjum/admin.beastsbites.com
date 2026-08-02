@@ -108,7 +108,6 @@ button{margin-top:14px;padding:10px 14px;border:none;border-radius:8px;backgroun
             <table class="users-table" aria-label="Dashboard users list">
                 <thead>
                     <tr>
-                        <th>User ID</th>
                         <th>Username</th>
                         <th>Role</th>
                         <th>Status</th>
@@ -117,7 +116,7 @@ button{margin-top:14px;padding:10px 14px;border:none;border-radius:8px;backgroun
                 </thead>
                 <tbody id="usersTableBody">
                     <tr>
-                        <td colspan="5">Loading users...</td>
+                        <td colspan="4">Loading users...</td>
                     </tr>
                 </tbody>
             </table>
@@ -128,9 +127,6 @@ button{margin-top:14px;padding:10px 14px;border:none;border-radius:8px;backgroun
         <div id="createUserSection">
             <h2>Owner: Add User / Delivery Guy</h2>
             <form id="createUserForm">
-                <label>User ID</label>
-                <input id="user_id" type="number" required>
-
                 <label>Username</label>
                 <input id="username" type="text" required>
 
@@ -185,7 +181,7 @@ function renderUsers(users){
     meta.textContent = count ? `${count} user${count === 1 ? "" : "s"} loaded` : "No users found.";
 
     if(!count){
-        body.innerHTML = '<tr><td colspan="5">No users to display.</td></tr>';
+        body.innerHTML = '<tr><td colspan="4">No users to display.</td></tr>';
         return;
     }
 
@@ -195,7 +191,6 @@ function renderUsers(users){
 
         return `
             <tr>
-                <td>${user.user_id ?? "-"}</td>
                 <td>${user.username ?? "-"}</td>
                 <td>${user.role ?? "-"}</td>
                 <td><span class="status-pill ${activeClass}">${activeLabel}</span></td>
@@ -255,7 +250,6 @@ document.getElementById("createUserForm").addEventListener("submit", async (e) =
     e.preventDefault();
 
     const body = {
-        user_id: Number(document.getElementById("user_id").value),
         username: document.getElementById("username").value.trim(),
         password: document.getElementById("password").value,
         photo_url: document.getElementById("photo_url").value.trim(),
