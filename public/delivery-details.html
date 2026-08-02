@@ -24,6 +24,9 @@
     .topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
     .logout-btn { margin-top:0; background:#b42318; }
     .logout-btn:hover { background:#8f2017; }
+    .photo-section { margin-top:12px; }
+    .photo-section label { margin-top:12px; }
+    .photo-hint { margin-top:8px; font-size:13px; color:#666; }
     @media (max-width: 640px) {
       .container { padding:18px; }
       .card { padding:14px; }
@@ -44,17 +47,18 @@
       <div id="deliveryInfo"></div>
       <div id="customerInfo" style="margin-top:12px;"></div>
       <div id="managementSection">
-        <div id="photoPreview" style="margin-top:12px;"></div>
-        <label>Status</label>
+        <div id="photoPreview" class="photo-section"></div>
+        <label for="delivery_status">Status</label>
         <select id="delivery_status">
           <option value="Pending">Pending</option>
           <option value="Delivered">Delivered</option>
           <option value="Cancelled">Cancelled</option>
         </select>
-        <label>Photo</label>
-        <input id="photoFile" type="file" accept="image/*" />
-        <input id="photoUrl" placeholder="Or paste image URL" style="margin-top:8px;" />
-        <div id="photoHint" style="margin-top:8px; font-size:13px; color:#666;">Choose a file or paste a URL. A photo is required before marking this delivery as Delivered.</div>
+        <div class="photo-section">
+          <label for="photoFile">Upload Photo</label>
+          <input id="photoFile" type="file" accept="image/*" />
+          <div id="photoHint" class="photo-hint">Choose a photo file before marking this delivery as Delivered.</div>
+        </div>
         <button id="saveBtn">Save Status</button>
       </div>
     </div>
@@ -100,16 +104,15 @@
       const canManage = !data.restrictedView;
       managementSection.style.display = canManage ? 'block' : 'none';
       document.getElementById('delivery_status').value = delivery.delivery_status;
-      document.getElementById('photoUrl').value = delivery.photo_url || '';
       const photoPreview = document.getElementById('photoPreview');
       const photoHint = document.getElementById('photoHint');
       if (delivery.photo_url) {
         const safePhotoUrl = String(delivery.photo_url).startsWith('data:') ? delivery.photo_url : delivery.photo_url;
         photoPreview.innerHTML = `<img src="${safePhotoUrl}" alt="Delivery photo" style="max-width:100%; max-height:220px; border-radius:10px; border:1px solid #ddd;" />`;
-        photoHint.textContent = 'Current photo is attached. You can replace it before saving.';
+        photoHint.textContent = 'Current photo is attached. Upload a new file to replace it.';
       } else {
         photoPreview.innerHTML = '';
-        photoHint.textContent = 'Choose a file or paste a URL. A photo is required before marking this delivery as Delivered.';
+        photoHint.textContent = 'Choose a photo file before marking this delivery as Delivered.';
       }
       if (canManage && customer) {
         document.getElementById('customerInfo').innerHTML = `
@@ -131,9 +134,8 @@
 
     document.getElementById('saveBtn').addEventListener('click', async () => {
       const status = document.getElementById('delivery_status').value;
-      const photoUrl = document.getElementById('photoUrl').value.trim();
       const photoFile = document.getElementById('photoFile').files[0];
-      let photo = photoUrl;
+      let photo = '';
 
       if (photoFile) {
         photo = await readFileAsDataUrl(photoFile);

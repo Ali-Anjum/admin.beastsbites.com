@@ -8,6 +8,7 @@ This project is a Node.js + Express + MongoDB backend for a food-delivery manage
 
 - Login and logout flows with JWT cookies
 - Role-based access control for Owner, Manager, Delivery-Guy, and Observer users
+- Shared static header navigation that changes by role, with Delivery-Guy users seeing only deliveries
 - Delivery list, detail, add, and status-update APIs
 - Customer list, search, add, detail, and update APIs
 - Logging middleware for delivery and dashboard actions
@@ -45,6 +46,7 @@ Dependencies are defined in package.json.
 - routes/customers.js: customer routes and APIs
 - routes/logs.js: log viewing routes
 - public/: frontend HTML pages
+- public/app-header.js: shared client-side header navigation
 - tests/: smoke and business-rule tests
 
 ## Startup flow
@@ -172,6 +174,9 @@ Stores subscription windows for customers. It is used by the daily delivery gene
 #### POST /logout
 - Clears the token cookie and redirects back to /login.
 
+#### GET /login while authenticated
+- Clears any existing token cookie before serving the login page, so a user can re-login cleanly.
+
 ### Dashboard home routes (routes/dashboardHome.js)
 
 #### GET /dashboard/
@@ -180,6 +185,7 @@ Stores subscription windows for customers. It is used by the daily delivery gene
 #### GET /dashboard/data
 - Returns dashboard counts and capability flags for the current user.
 - Delivery-Guy users see a narrower set of capabilities.
+- Only Owner users receive the Logs capability and the Logs card/link in the UI.
 
 #### POST /dashboard/users/add
 - Creates a new user with a hashed password.
@@ -223,7 +229,7 @@ Stores subscription windows for customers. It is used by the daily delivery gene
 #### PATCH /dashboard/delivery/:id/status
 - Updates delivery_status.
 - Allowed values: Pending, Delivered, Cancelled.
-- A photo is required before a delivery can be marked Delivered.
+- A photo file upload is required before a delivery can be marked Delivered.
 - Delivered deliveries cannot be changed again.
 
 #### POST /dashboard/delivery/add
@@ -254,12 +260,12 @@ Stores subscription windows for customers. It is used by the daily delivery gene
 - Returns a customer, its linked deliveries, and its subscription by numeric customers_id.
 
 #### PATCH /dashboard/customers/:id
-- Updates customer profile data, including meal times, delivery guy, comments, and purchase proof.
+- Updates customer profile data, including meal times, delivery guy, comments, and active_till.
 
 ### Logs route (routes/logs.js)
 
 #### GET /logs/
-- Serves public/logs.html for Owner and Manager users.
+- Serves public/logs.html for Owner users only.
 
 #### GET /logs/data
 - Returns paginated log entries.
@@ -278,7 +284,7 @@ The app includes a scheduler in helpers/deliveryScheduler.js.
 
 - public/login.html: login form
 - public/deliveries.html: delivery table and list view
-- public/delivery-details.html: delivery detail and status/photo workflow
+- public/delivery-details.html: delivery detail and status/photo upload workflow
 - public/customers.html: customer list and search UI
 - public/customer-details.html: customer detail and edit UI
 - public/adddelivery.html: add-delivery form
@@ -298,6 +304,7 @@ From package.json:
 - Authentication currently relies on a cookie-based JWT and does not include CSRF protection.
 - Login does not have rate limiting or brute-force protection.
 - Some routes redirect while others return JSON; this can be inconsistent for clients.
+- Logs are intentionally owner-only in both the dashboard UI and the logs routes.
 - The codebase has a test suite under tests/ that covers business rules and route smoke scenarios.
 
 ## Quick run instructions
