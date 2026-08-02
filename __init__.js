@@ -8,6 +8,7 @@ const Userroutes = require('./routes/login');
 const Dashboard = require('./routes/dashboard');
 const customers = require('./routes/customers');
 const dashboardHome = require('./routes/dashboardHome');
+const users = require('./routes/users');
 const logsRoute = require('./routes/logs');
 const { connectDB } = require('./helpers/DbConnect');
 const { startScheduler } = require('./helpers/deliveryScheduler');
@@ -28,6 +29,7 @@ async function startServer() {
   app.use('/dashboard/delivery', Dashboard);
   app.use('/dashboard/home', dashboardHome);
   app.use('/dashboard/customers', customers);
+  app.use('/dashboard/users', users);
   app.use('/logs', logsRoute);
 
   app.get('/', (req, res) => {

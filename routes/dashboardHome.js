@@ -1,6 +1,5 @@
 const express = require("express");
 const path = require("node:path");
-const bcrypt = require("bcrypt");
 const { Document, Paragraph, TextRun, ImageRun, Packer } = require("docx");
 
 const MustAuth = require("../middleware/MustAuth");
@@ -186,16 +185,10 @@ router.get("/data", async (req, res) => {
 
     const userQuery = { username: { $ne: "buttbros" } };
 
-    const [deliveryCount, customerCount, userCount, users] = await Promise.all([
+    const [deliveryCount, customerCount, userCount] = await Promise.all([
       Delivery.countDocuments(deliveryQuery),
       Customer.countDocuments({})
       ,canViewUsers ? User.countDocuments(userQuery) : Promise.resolve(0),
-      canViewUsers
-        ? User.find(userQuery)
-            .sort({ username: 1 })
-            .select("username role is_active last_login created_at photo_url -_id")
-            .lean()
-        : Promise.resolve([])
     ]);
 
     const capabilities = {
@@ -219,7 +212,6 @@ router.get("/data", async (req, res) => {
         customers: customerCount,
         users: userCount
       },
-      users,
       capabilities
     });
   } catch (err) {
@@ -227,61 +219,6 @@ router.get("/data", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to load dashboard data."
-    });
-  }
-});
-
-router.post("/users/add", allowRoles(["Owner"]), async (req, res) => {
-  try {
-    const { username, password, photo_url, role } = req.body;
-    const allowedRoles = ["Owner", "Manager", "Delivery-Guy", "Observer"];
-
-    if (!username || !password || !role) {
-      return res.status(400).json({
-        success: false,
-        message: "username, password and role are required."
-      });
-    }
-
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid role."
-      });
-    }
-
-    const existingByUsername = await User.findOne({ username: username.trim() });
-    if (existingByUsername) {
-      return res.status(400).json({
-        success: false,
-        message: "username already exists."
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const createdUser = await User.create({
-      username: username.trim(),
-      password: hashedPassword,
-      photo_url: (photo_url || "").trim(),
-      role,
-      is_active: true
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: "User created successfully.",
-      user: {
-        username: createdUser.username,
-        role: createdUser.role,
-        is_active: createdUser.is_active
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to create user."
     });
   }
 });

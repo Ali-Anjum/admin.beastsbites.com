@@ -4,7 +4,7 @@ const express = require('express');
 const request = require('supertest');
 const Module = require('node:module');
 
-function loadDashboardRoute({ role, username, users }) {
+function loadDashboardRoute({ role, username, deliveryCount = 4, customerCount = 2, userCount = 0 }) {
   const routePath = require.resolve('../routes/dashboardHome');
   const dependencyPaths = [
     '../middleware/MustAuth',
@@ -35,22 +35,16 @@ function loadDashboardRoute({ role, username, users }) {
       hasRole: () => true
     },
     '../Models/DeliverSchema': {
-      countDocuments: async () => 4,
+      countDocuments: async () => deliveryCount,
       find: () => ({ sort: () => ({ skip: () => ({ limit: async () => [] }) }) })
     },
     '../Models/customersSchema': {
-      countDocuments: async () => 2,
+      countDocuments: async () => customerCount,
       find: () => ({ sort: () => ({ select: () => ({ lean: async () => [] }) }) })
     },
     '../Models/UserSchema': {
-      countDocuments: async () => users.length,
-      find: () => ({
-        sort: () => ({
-          select: () => ({
-            lean: async () => users
-          })
-        })
-      })
+      countDocuments: async () => userCount,
+      find: () => ({ sort: () => ({ select: () => ({ lean: async () => [] }) }) })
     },
     '../Models/LogSchema': {
       find: () => ({ sort: () => ({ lean: async () => [] }) }),
@@ -87,20 +81,10 @@ function buildApp(route) {
 }
 
 test('dashboard data includes users for manager roles', async () => {
-  const users = [
-    {
-      username: 'alice',
-      role: 'Manager',
-      is_active: true,
-      last_login: '2026-08-01T10:00:00.000Z',
-      created_at: '2026-07-01T08:00:00.000Z'
-    }
-  ];
-
   const route = loadDashboardRoute({
     role: 'Manager',
     username: 'manager1',
-    users
+    userCount: 1
   });
 
   const app = buildApp(route);
@@ -110,14 +94,14 @@ test('dashboard data includes users for manager roles', async () => {
   assert.equal(res.body.success, true);
   assert.equal(res.body.counts.users, 1);
   assert.equal(res.body.capabilities.canViewUsers, true);
-  assert.deepEqual(res.body.users, users);
+  assert.equal(res.body.users, undefined);
 });
 
 test('dashboard data hides users for delivery guys', async () => {
   const route = loadDashboardRoute({
     role: 'Delivery-Guy',
     username: 'delivery1',
-    users: []
+    userCount: 0
   });
 
   const app = buildApp(route);
@@ -127,5 +111,5 @@ test('dashboard data hides users for delivery guys', async () => {
   assert.equal(res.body.success, true);
   assert.equal(res.body.counts.users, 0);
   assert.equal(res.body.capabilities.canViewUsers, false);
-  assert.deepEqual(res.body.users, []);
+  assert.equal(res.body.users, undefined);
 });

@@ -26,25 +26,7 @@ body{margin:0;background:var(--cream);color:var(--ink);padding:clamp(16px,3vw,24
 .card h3{margin:0 0 10px;color:var(--green-dark);}
 .card p{margin:0 0 12px;}
 .card a{display:inline-block;text-decoration:none;padding:10px 12px;border-radius:8px;background:var(--green);color:#fff;font-weight:bold;}
-.users-panel{margin-top:18px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.08);}
-.users-panel h2{margin:0 0 14px;color:var(--green-dark);}
-.users-toolbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
-.users-toolbar p{margin:0;color:#5e6755;}
-.users-table-wrap{overflow-x:auto;}
-.users-table{width:100%;border-collapse:collapse;min-width:640px;}
-.users-table th,.users-table td{padding:12px 10px;border-bottom:1px solid #e7e2d8;text-align:left;vertical-align:top;}
-.users-table th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#5d6958;background:#fbf7f0;}
-.status-pill{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:bold;}
-.status-pill.active{background:#e6f4ea;color:#1e6b33;}
-.status-pill.inactive{background:#fdecec;color:#b42318;}
 .hidden{display:none;}
-.owner-box{margin-top:18px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.08);}
-.backup-actions{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;}
-.backup-actions button{flex:1;min-width:150px;}
-label{display:block;font-size:13px;font-weight:bold;margin-top:10px;margin-bottom:6px;}
-input,select{width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;}
-button{margin-top:14px;padding:10px 14px;border:none;border-radius:8px;background:var(--amber);color:#fff;font-weight:bold;cursor:pointer;}
-#msg{margin-top:8px;font-weight:bold;}
 @media (max-width: 720px){
     .top{align-items:flex-start;}
     .top-right{width:100%;flex-direction:column;align-items:stretch;}
@@ -83,7 +65,7 @@ button{margin-top:14px;padding:10px 14px;border:none;border-radius:8px;backgroun
         <div class="card hidden" id="usersCard">
             <h3>Users</h3>
             <p id="userCount">0 users</p>
-            <a href="#usersSection">View Users</a>
+            <a href="/dashboard/users">Open Users</a>
         </div>
 
         <div class="card" id="addDeliveryCard">
@@ -99,106 +81,10 @@ button{margin-top:14px;padding:10px 14px;border:none;border-radius:8px;backgroun
         </div>
     </div>
 
-    <div class="users-panel hidden" id="usersSection">
-        <div class="users-toolbar">
-            <h2 style="margin: 0;">Users</h2>
-            <p id="usersMeta">Loading users...</p>
-        </div>
-        <div class="users-table-wrap">
-            <table class="users-table" aria-label="Dashboard users list">
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Last Login</th>
-                    </tr>
-                </thead>
-                <tbody id="usersTableBody">
-                    <tr>
-                        <td colspan="4">Loading users...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="owner-box hidden" id="ownerBox">
-        <div id="createUserSection">
-            <h2>Owner: Add User / Delivery Guy</h2>
-            <form id="createUserForm">
-                <label>Username</label>
-                <input id="username" type="text" required>
-
-                <label>Password</label>
-                <input id="password" type="password" required>
-
-                <label>Photo URL (Optional)</label>
-                <input id="photo_url" type="text" placeholder="https://.../photo.jpg">
-
-                <label>Role</label>
-                <select id="role" required>
-                    <option value="Observer">Observer</option>
-                    <option value="Delivery-Guy">Delivery-Guy</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Owner">Owner</option>
-                </select>
-
-                <button type="submit">Create User</button>
-                <div id="msg"></div>
-            </form>
-        </div>
-
-        <h2 style="margin-top: 30px;">Database Backup & Restore</h2>
-        <div class="backup-actions">
-            <button id="exportBtn" type="button" style="background: var(--green);">📥 Export All Data</button>
-            <button id="docxExportBtn" type="button" style="background: var(--amber);">📝 Export DOCX Report</button>
-            <button id="importBtn" type="button" style="background: var(--green);">📤 Import Data</button>
-            <input type="file" id="importFile" accept=".json" style="display: none;">
-        </div>
-        <div id="backupMsg" style="margin-top: 10px;"></div>
-    </div>
 </div>
 
 <script>
 let caps = null;
-
-function formatDate(value){
-    if(!value) return "-";
-
-    const date = new Date(value);
-    if(Number.isNaN(date.getTime())) return "-";
-
-    return date.toLocaleString();
-}
-
-function renderUsers(users){
-    const body = document.getElementById("usersTableBody");
-    const meta = document.getElementById("usersMeta");
-    const count = users.length;
-
-    document.getElementById("userCount").textContent = `${count} users`;
-    meta.textContent = count ? `${count} user${count === 1 ? "" : "s"} loaded` : "No users found.";
-
-    if(!count){
-        body.innerHTML = '<tr><td colspan="4">No users to display.</td></tr>';
-        return;
-    }
-
-    body.innerHTML = users.map((user) => {
-        const activeClass = user.is_active ? "active" : "inactive";
-        const activeLabel = user.is_active ? "Active" : "Inactive";
-
-        return `
-            <tr>
-                <td>${user.username ?? "-"}</td>
-                <td>${user.role ?? "-"}</td>
-                <td><span class="status-pill ${activeClass}">${activeLabel}</span></td>
-                <td>${formatDate(user.last_login || user.created_at)}</td>
-            </tr>
-        `;
-    }).join("");
-}
 
 async function loadDashboard(){
     const res = await fetch("/dashboard/data", { credentials: "include" });
@@ -220,13 +106,8 @@ async function loadDashboard(){
         document.getElementById("customersCard").classList.add("hidden");
     }
 
-    if(caps.canViewUsers){
+    if(data.counts.users > 0){
         document.getElementById("usersCard").classList.remove("hidden");
-        document.getElementById("usersSection").classList.remove("hidden");
-        renderUsers(Array.isArray(data.users) ? data.users : []);
-    } else {
-        document.getElementById("usersCard").classList.add("hidden");
-        document.getElementById("usersSection").classList.add("hidden");
     }
 
     if(!caps.canAddDelivery){
@@ -237,141 +118,7 @@ async function loadDashboard(){
         document.getElementById("logsCard").classList.remove("hidden");
     }
 
-    if(caps.canManageUsers || caps.canViewLogs){
-        document.getElementById("ownerBox").classList.remove("hidden");
-    }
-
-    if(!caps.canManageUsers){
-        document.getElementById("createUserSection").classList.add("hidden");
-    }
 }
-
-document.getElementById("createUserForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const body = {
-        username: document.getElementById("username").value.trim(),
-        password: document.getElementById("password").value,
-        photo_url: document.getElementById("photo_url").value.trim(),
-        role: document.getElementById("role").value
-    };
-
-    const res = await fetch("/dashboard/users/add", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-    });
-
-    const data = await res.json();
-    const msg = document.getElementById("msg");
-
-    if(!data.success){
-        msg.style.color = "#b42318";
-        msg.textContent = data.message || "Failed to create user.";
-        return;
-    }
-
-    msg.style.color = "green";
-    msg.textContent = data.message;
-    document.getElementById("createUserForm").reset();
-});
-
-document.getElementById("exportBtn").addEventListener("click", async () => {
-    try {
-        const res = await fetch("/dashboard/export", { credentials: "include" });
-        
-        if(!res.ok) {
-            throw new Error("Export failed");
-        }
-
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `db_export_${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        const msg = document.getElementById("backupMsg");
-        msg.style.color = "green";
-        msg.textContent = "✓ Data exported successfully!";
-        setTimeout(() => msg.textContent = "", 5000);
-    } catch (err) {
-        const msg = document.getElementById("backupMsg");
-        msg.style.color = "#b42318";
-        msg.textContent = "✗ Export failed: " + err.message;
-    }
-});
-
-document.getElementById("docxExportBtn").addEventListener("click", async () => {
-    try {
-        const res = await fetch("/dashboard/export/docx", { credentials: "include" });
-        if(!res.ok) {
-            throw new Error("DOCX export failed");
-        }
-
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `user_delivery_report_${Date.now()}.docx`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        const msg = document.getElementById("backupMsg");
-        msg.style.color = "green";
-        msg.textContent = "✓ DOCX report exported successfully!";
-        setTimeout(() => msg.textContent = "", 5000);
-    } catch (err) {
-        const msg = document.getElementById("backupMsg");
-        msg.style.color = "#b42318";
-        msg.textContent = "✗ DOCX export failed: " + err.message;
-    }
-});
-
-document.getElementById("importBtn").addEventListener("click", () => {
-    document.getElementById("importFile").click();
-});
-
-document.getElementById("importFile").addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-
-    try {
-        const fileContent = await file.text();
-        const data = JSON.parse(fileContent);
-
-        const res = await fetch("/dashboard/import", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ collections: data.collections })
-        });
-
-        const result = await res.json();
-        const msg = document.getElementById("backupMsg");
-
-        if(!result.success) {
-            msg.style.color = "#b42318";
-            msg.textContent = "✗ Import failed: " + (result.message || "Unknown error");
-            return;
-        }
-
-        msg.style.color = "green";
-        msg.textContent = `✓ ${result.message}`;
-        document.getElementById("importFile").value = "";
-        setTimeout(() => msg.textContent = "", 5000);
-    } catch (err) {
-        const msg = document.getElementById("backupMsg");
-        msg.style.color = "#b42318";
-        msg.textContent = "✗ Import error: " + err.message;
-    }
-});
 
 loadDashboard();
 

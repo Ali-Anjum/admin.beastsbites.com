@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Users</title>
+<style>
+:root{--green:#537457;--green-dark:#3c5540;--cream:#fdf3e7;--amber:#c2823f;}
+html{-webkit-text-size-adjust:100%;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+body{background:var(--cream);padding:clamp(16px,3vw,40px);color:#26301f;}
+.container{max-width:1150px;margin:auto;}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;gap:15px;flex-wrap:wrap;}
+.header h1{color:var(--green-dark);font-size:34px;}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+button{padding:12px 18px;border:none;background:var(--green);color:white;border-radius:8px;cursor:pointer;font-size:15px;transition:.2s;}
+button:hover{background:var(--green-dark);}
+.secondary{background:var(--amber);}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;box-shadow:0 10px 25px rgba(0,0,0,.08);background:white;}
+table{width:100%;border-collapse:collapse;min-width:820px;}
+thead{background:var(--green);color:white;}
+th,td{padding:16px;text-align:left;border-bottom:1px solid #eee;vertical-align:top;}
+tbody tr:nth-child(even){background:#faf7f2;}
+tbody tr:hover{background:#eef3ec;}
+.loading,.empty{text-align:center;margin-top:25px;font-size:18px;}
+.panel{margin-top:20px;background:white;border-radius:12px;padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.08);}
+.panel h2{margin-bottom:14px;color:var(--green-dark);}
+label{display:block;font-size:13px;font-weight:bold;margin-top:10px;margin-bottom:6px;}
+input,select{width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;}
+.hidden{display:none;}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.row-actions button{padding:8px 12px;font-size:12px;}
+@media(max-width:700px){.header{flex-direction:column;align-items:flex-start;}.controls{width:100%;}button{width:100%;}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Users</h1>
+    <div class="controls">
+      <button id="backBtn" class="secondary" type="button">Back to Dashboard</button>
+      <button id="addUserBtn" style="display:none;" type="button">+ Add User</button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">Loading users...</div>
+  <div class="table-wrap" id="tableWrap" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Last Login</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div id="empty" class="empty" style="display:none;">No users found.</div>
+
+  <div class="panel hidden" id="createPanel">
+    <h2>Add User</h2>
+    <form id="createUserForm">
+      <label>Username</label>
+      <input id="username" type="text" required>
+
+      <label>Password</label>
+      <input id="password" type="password" required>
+
+      <label>Photo URL (Optional)</label>
+      <input id="photo_url" type="text" placeholder="https://.../photo.jpg">
+
+      <label>Role</label>
+      <select id="role" required>
+        <option value="Observer">Observer</option>
+        <option value="Delivery-Guy">Delivery-Guy</option>
+        <option value="Manager">Manager</option>
+        <option value="Owner">Owner</option>
+      </select>
+
+      <button type="submit">Create User</button>
+      <div id="createMsg" style="margin-top:10px;font-weight:bold;"></div>
+    </form>
+  </div>
+
+  <div class="panel hidden" id="passwordPanel">
+    <h2>Change Password</h2>
+    <form id="passwordForm">
+      <label>User</label>
+      <select id="edit_username" required></select>
+
+      <label>New Password</label>
+      <input id="edit_password" type="password" required>
+
+      <button type="submit">Update Password</button>
+      <div id="passwordMsg" style="margin-top:10px;font-weight:bold;"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+let canManageUsers = false;
+
+function formatDate(value){
+  if(!value) return "-";
+  const date = new Date(value);
+  if(Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString();
+}
+
+function renderUsers(users){
+  const tbody = document.getElementById("tbody");
+  const editSelect = document.getElementById("edit_username");
+
+  editSelect.innerHTML = '<option value="">Select a user</option>';
+  tbody.innerHTML = "";
+
+  if(!users.length){
+    document.getElementById("tableWrap").style.display = "none";
+    document.getElementById("empty").style.display = "block";
+    return;
+  }
+
+  document.getElementById("tableWrap").style.display = "block";
+  document.getElementById("empty").style.display = "none";
+
+  users.forEach((user) => {
+    const option = document.createElement("option");
+    option.value = user.username || "";
+    option.textContent = `${user.username || "Unknown"} (${user.role || "Unknown"})`;
+    editSelect.appendChild(option);
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${user.username ?? "-"}</td>
+      <td>${user.role ?? "-"}</td>
+      <td>${user.is_active ? "Active" : "Inactive"}</td>
+      <td>${formatDate(user.last_login || user.created_at)}</td>
+      <td class="row-actions">${canManageUsers ? `<button type="button" class="edit-btn" data-username="${encodeURIComponent(user.username || "")}">Change Password</button>` : "-"}</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  document.querySelectorAll(".edit-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      document.getElementById("passwordPanel").classList.remove("hidden");
+      document.getElementById("edit_username").value = decodeURIComponent(button.dataset.username || "");
+      document.getElementById("edit_password").focus();
+    });
+  });
+}
+
+async function loadUsers(){
+  const res = await fetch("/dashboard/users/data", { credentials: "include" });
+  const data = await res.json();
+  document.getElementById("loading").style.display = "none";
+
+  if(!data.success){
+    alert(data.message || "Failed to load users");
+    return;
+  }
+
+  canManageUsers = !!data.capabilities?.canManageUsers;
+  document.getElementById("addUserBtn").style.display = canManageUsers ? "inline-block" : "none";
+  document.getElementById("createPanel").classList.toggle("hidden", !canManageUsers);
+  document.getElementById("passwordPanel").classList.toggle("hidden", !canManageUsers);
+
+  renderUsers(Array.isArray(data.users) ? data.users : []);
+}
+
+document.getElementById("backBtn").addEventListener("click", () => {
+  window.location.href = "/dashboard";
+});
+
+document.getElementById("addUserBtn").addEventListener("click", () => {
+  document.getElementById("createPanel").classList.remove("hidden");
+  document.getElementById("createUserForm").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+document.getElementById("createUserForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const body = {
+    username: document.getElementById("username").value.trim(),
+    password: document.getElementById("password").value,
+    photo_url: document.getElementById("photo_url").value.trim(),
+    role: document.getElementById("role").value
+  };
+
+  const res = await fetch("/dashboard/users/add", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  const data = await res.json();
+  const msg = document.getElementById("createMsg");
+  msg.style.color = data.success ? "green" : "#b42318";
+  msg.textContent = data.message || (data.success ? "Created." : "Failed to create user.");
+  if(data.success){
+    e.target.reset();
+    await loadUsers();
+  }
+});
+
+document.getElementById("passwordForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const body = {
+    username: document.getElementById("edit_username").value,
+    password: document.getElementById("edit_password").value
+  };
+
+  const res = await fetch("/dashboard/users/password", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  const data = await res.json();
+  const msg = document.getElementById("passwordMsg");
+  msg.style.color = data.success ? "green" : "#b42318";
+  msg.textContent = data.message || (data.success ? "Updated." : "Failed to update password.");
+  if(data.success){
+    e.target.reset();
+  }
+});
+
+loadUsers();
+</script>
+</body>
+</html>
