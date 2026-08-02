@@ -4,7 +4,7 @@ const express = require('express');
 const request = require('supertest');
 const Module = require('node:module');
 
-function loadCustomersRoute({ userExists = true, customerExists = null, createdCustomers = [], createdSubscriptions = [] } = {}) {
+function loadCustomersRoute({ userExists = true, customerExists = null, createdCustomers = [], createdSubscriptions = [], customMocks = {} } = {}) {
   const routePath = require.resolve('../routes/customers');
   const dependencyPaths = [
     '../middleware/MustAuth',
@@ -64,6 +64,8 @@ function loadCustomersRoute({ userExists = true, customerExists = null, createdC
       syncCustomerStatuses: async () => undefined
     }
   };
+
+  Object.assign(mockModels, customMocks);
 
   Module._load = function mockedLoad(request, parent, isMain) {
     if (Object.prototype.hasOwnProperty.call(mockModels, request)) {
@@ -133,4 +135,41 @@ test('add customer rejects missing active_till', async () => {
 
   assert.equal(res.status, 400);
   assert.match(res.body.message, /active_till/i);
+});
+
+test('customer search strips special characters before querying the database', async () => {
+  let capturedCountQuery = null;
+  let capturedFindQuery = null;
+
+  const route = loadCustomersRoute({
+    customMocks: {
+      '../Models/customersSchema': {
+        find: (query) => {
+          capturedFindQuery = query;
+          return { sort: () => ({ skip: () => ({ limit: async () => [] }) }) };
+        },
+        countDocuments: async (query) => {
+          capturedCountQuery = query;
+          return 0;
+        },
+        findOne: async () => null,
+        create: async () => null,
+        findOneAndUpdate: async () => null
+      }
+    }
+  });
+
+  const app = buildApp(route);
+  const res = await request(app)
+    .get('/dashboard/customers/data?page=1&search=abc!@#$123')
+    .send();
+
+  assert.equal(res.status, 200);
+  assert.ok(capturedCountQuery);
+  assert.equal(capturedCountQuery.$or[0].customers_name.$regex.source, 'abc123');
+  assert.equal(capturedCountQuery.$or[1].phone_number.$regex.source, 'abc123');
+  assert.equal(capturedCountQuery.$or[2].location.$regex.source, 'abc123');
+  assert.equal(capturedFindQuery.$or[0].customers_name.$regex.source, 'abc123');
+  assert.equal(capturedFindQuery.$or[1].phone_number.$regex.source, 'abc123');
+  assert.equal(capturedFindQuery.$or[2].location.$regex.source, 'abc123');
 });

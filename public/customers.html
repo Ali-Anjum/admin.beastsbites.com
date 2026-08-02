@@ -10,30 +10,49 @@ html{-webkit-text-size-adjust:100%;}
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
 body{background:var(--cream);padding:clamp(16px,3vw,40px);}
 .container{max-width:1150px;margin:auto;}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;gap:15px;flex-wrap:wrap;}
+.top-nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+.header{display:grid;grid-template-columns:1fr auto;align-items:center;margin-bottom:25px;gap:15px;}
 .header h1{color:var(--green-dark);font-size:34px;}
-.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
 input{padding:12px;width:320px;border:2px solid var(--green);border-radius:8px;font-size:15px;outline:none;}
 input:focus{border-color:var(--green-dark);}
 button{padding:12px 18px;border:none;background:var(--green);color:white;border-radius:8px;cursor:pointer;font-size:15px;transition:.2s;}
 button:hover{background:var(--green-dark);} 
 .logout-btn{background:#b42318;}
 .logout-btn:hover{background:#8f2017;}
-  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;box-shadow:0 10px 25px rgba(0,0,0,.08);}
-  table{width:100%;border-collapse:collapse;background:white;min-width:760px;}
-thead{background:var(--green);color:white;} 
-th,td{padding:16px;text-align:left;border-bottom:1px solid #eee;} 
-tbody tr:nth-child(even){background:#faf7f2;} 
-tbody tr:hover{background:#eef3ec;} 
+.top-nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+.top-nav button{padding:10px 16px; border-radius:8px; background:var(--green); color:white; border:none; cursor:pointer; transition:.2s;}
+.top-nav button:hover{background:var(--green-dark);}
+.header{display:grid;grid-template-columns:1fr auto;align-items:center;margin-bottom:25px;gap:15px;}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+input{padding:12px;width:320px;border:2px solid var(--green);border-radius:8px;font-size:15px;outline:none;min-width:0;}
+input:focus{border-color:var(--green-dark);}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;box-shadow:0 10px 25px rgba(0,0,0,.08);}
+table{width:100%;border-collapse:collapse;background:white;min-width:760px;}
+thead{background:var(--green);color:white;}
+th,td{padding:16px;text-align:left;border-bottom:1px solid #eee;}
+tbody tr:nth-child(even){background:#faf7f2;}
+tbody tr:hover{background:#eef3ec;}
 .loading,.empty{text-align:center;margin-top:25px;font-size:18px;}
 .status-badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:bold;color:white;}
 .status-badge.active{background:#1e6b33;}
 .status-badge.expired{background:#b42318;}
-.pagination{margin-top:25px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;} .pagination button{padding:8px 15px;}.pagination button.active{background:#c2823f;} .row-actions button{padding:8px 12px;margin-right:8px;} @media(max-width:700px){.header{flex-direction:column;align-items:flex-start;}.controls{width:100%;}input{width:100%;}button{width:100%;}}
+.pagination{margin-top:25px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;}
+.pagination button{padding:8px 15px;}
+.pagination button.active{background:#c2823f;}
+.row-actions button{padding:8px 12px;margin-right:8px;}
+@media(max-width:900px){
+  .header{grid-template-columns:1fr;}
+  .controls{justify-content:flex-start;}
+  .controls input{width:100%;max-width:100%;}
+}
 @media(max-width:700px){
-  .header{flex-direction:column;align-items:flex-start;}
-  .controls{width:100%;}
-  input{width:100%;}
+  .top-nav{flex-direction:column;align-items:stretch;}
+  .top-nav button{width:100%;}
+  .header{grid-template-columns:1fr;}
+  .controls{width:100%;justify-content:stretch;}
+  .controls input{width:100%;}
+  .controls button{width:100%;}
   button{width:100%;}
   th,td{padding:12px 10px;}
 }
@@ -41,11 +60,17 @@ tbody tr:hover{background:#eef3ec;}
 </head>
 <body>
 <div class="container">
+  <div class="top-nav">
+    <button onclick="location.href='/dashboard'">Dashboard</button>
+    <button onclick="location.href='/dashboard/customers/add'">Add Customer</button>
+    <button onclick="location.href='/dashboard/deliveries'">Deliveries</button>
+    <button onclick="location.href='/dashboard/logs'">Logs</button>
+  </div>
   <div class="header">
     <h1>Customers</h1>
     <div class="controls">
       <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
-      <input id="search" placeholder="Search customer or phone...">
+      <input id="search" placeholder="Search name, phone or location...">
       <button id="addCustomerBtn" style="display:none;" onclick="location.href='/dashboard/customers/add'">+ Add Customer</button>
     </div>
   </div>
@@ -133,7 +158,11 @@ function renderPagination(){
 }
 
 let timer;
-document.getElementById("search").addEventListener("input", () => {
+document.getElementById("search").addEventListener("input", (event) => {
+  const cleanValue = event.target.value.replace(/[^a-zA-Z0-9 ]/g, "");
+  if (cleanValue !== event.target.value) {
+    event.target.value = cleanValue;
+  }
   clearTimeout(timer);
   timer = setTimeout(() => load(1), 300);
 });

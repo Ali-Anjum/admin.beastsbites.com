@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page Not Found</title>
+<style>
+:root{--green:#537457;--green-dark:#3c5540;--cream:#fdf3e7;--white:#ffffff;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+body{background:var(--cream);color:#333;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.container{max-width:700px;width:100%;background:white;border-radius:18px;box-shadow:0 18px 36px rgba(0,0,0,.12);padding:32px;}
+h1{font-size:3rem;color:var(--green-dark);margin-bottom:16px;}
+p{font-size:1.05rem;line-height:1.7;margin-bottom:28px;color:#444;}
+.actions{display:flex;flex-wrap:wrap;gap:12px;}
+button{padding:14px 20px;border:none;border-radius:10px;background:var(--green);color:white;font-size:1rem;cursor:pointer;transition:.2s;}
+button:hover{background:var(--green-dark);}
+@media(max-width:600px){.container{padding:24px;} h1{font-size:2.4rem;} button{width:100%;}}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>404 — Page Not Found</h1>
+  <p>Sorry, the page you are looking for does not exist. Use the buttons below to return to the dashboard or login page.</p>
+  <div class="actions">
+    <button onclick="window.location.href='/dashboard'">Go to Dashboard</button>
+    <button onclick="window.location.href='/login'">Go to Login</button>
+  </div>
+</div>
+</body>
+</html>

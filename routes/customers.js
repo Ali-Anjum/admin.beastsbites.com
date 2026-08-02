@@ -67,29 +67,35 @@ router.get("/data",  async (req, res) => {
         const limit = 30;
         const skip = (page - 1) * limit;
 
-        const search = (req.query.search || "").trim();
+        const rawSearch = (req.query.search || "").trim();
+        const sanitizedSearch = rawSearch.replace(/[^a-zA-Z0-9\s]/g, "").trim();
 
         let query = {};
 
-        if (search !== "") {
-
+        if (sanitizedSearch !== "") {
+            const escapedSearch = sanitizedSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             query = {
                 $or: [
                     {
                         customers_name: {
-                            $regex: search,
+                            $regex: escapedSearch,
                             $options: "i"
                         }
                     },
                     {
                         phone_number: {
-                            $regex: search,
+                            $regex: escapedSearch,
+                            $options: "i"
+                        }
+                    },
+                    {
+                        location: {
+                            $regex: escapedSearch,
                             $options: "i"
                         }
                     }
                 ]
             };
-
         }
 
         const total = await Customer.countDocuments(query);

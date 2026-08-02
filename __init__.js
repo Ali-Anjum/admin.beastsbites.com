@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 require('dotenv').config();
 
 const Userroutes = require('./routes/login');
@@ -34,6 +35,10 @@ async function startServer() {
 
   app.get('/', (req, res) => {
     res.redirect('/login');
+  });
+
+  app.use((req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
   });
 
   const port = Number(process.env.PORT || 3000);

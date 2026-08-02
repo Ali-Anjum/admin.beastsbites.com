@@ -10,7 +10,7 @@ This project is a Node.js + Express + MongoDB backend for a food-delivery manage
 - Role-based access control for Owner, Manager, Delivery-Guy, and Observer users
 - Shared static header navigation that changes by role, with Delivery-Guy users seeing only deliveries
 - Delivery list, detail, add, and status-update APIs
-- Customer list, search, add, detail, and update APIs
+- Customer list, search, add, detail, and update APIs (search supports name, phone, and location with sanitized input)
 - Logging middleware for delivery and dashboard actions
 - JSON and DOCX export/import endpoints for backup and restore workflows
 - Scheduled daily delivery generation based on active subscriptions
@@ -240,10 +240,12 @@ Stores subscription windows for customers. It is used by the daily delivery gene
 
 #### GET /dashboard/customers/
 - Serves public/customers.html.
+- The Customers page now includes a top navigation row and responsive layout for mobile.
 
 #### GET /dashboard/customers/data
 - Returns paginated customers (30 per page).
-- Supports case-insensitive search by customers_name or phone_number.
+- Supports case-insensitive search by customers_name, phone_number, and location.
+- Search input is sanitized to strip special characters before building the database query.
 
 #### GET /dashboard/customers/add
 - Serves public/add-customer.html.
