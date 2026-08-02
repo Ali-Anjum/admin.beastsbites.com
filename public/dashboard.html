@@ -22,10 +22,19 @@ body{margin:0;background:var(--cream);color:var(--ink);padding:clamp(16px,3vw,24
 .logout-btn{padding:8px 12px;border:none;border-radius:8px;background:#b42318;color:#fff;font-weight:bold;cursor:pointer;}
 .logout-btn:hover{background:#8f2017;}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
-.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 8px 20px rgba(0,0,0,.08);}
-.card h3{margin:0 0 10px;color:var(--green-dark);}
-.card p{margin:0 0 12px;}
+.card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.08);}
+.card h3{margin:0 0 10px;color:var(--green-dark);font-size:1.1rem;}
+.card p{margin:0 0 14px;line-height:1.6;}
 .card a{display:inline-block;text-decoration:none;padding:10px 12px;border-radius:8px;background:var(--green);color:#fff;font-weight:bold;}
+.backup-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.backup-actions a{background:rgba(83,116,87,.12);color:var(--green-dark);border:1px solid rgba(83,116,87,.2);}
+.backup-actions a:hover{background:rgba(83,116,87,.18);}
+.backup-section{display:flex;flex-direction:column;gap:10px;}
+.backup-section label{font-weight:700;color:var(--green-dark);}
+.backup-section input[type=file]{padding:10px 12px;border:1px solid #ddd;border-radius:10px;background:#f9f9f9;cursor:pointer;}
+.backup-button{padding:12px 14px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:700;cursor:pointer;}
+.backup-button:hover{background:var(--green-dark);}
+.backup-message{margin-top:10px;font-size:0.95rem;line-height:1.5;}
 .hidden{display:none;}
 @media (max-width: 720px){
     .top{align-items:flex-start;}
@@ -33,9 +42,10 @@ body{margin:0;background:var(--cream);color:var(--ink);padding:clamp(16px,3vw,24
     .top-right > *{width:100%;}
     .grid{grid-template-columns:1fr;}
     .owner-box{padding:16px;}
-    .backup-actions{flex-direction:column;}
-    .backup-actions button,
-    .backup-actions input{width:100%;min-width:0;}
+    .backup-actions{flex-direction:column;align-items:stretch;}
+    .backup-actions a{width:100%;text-align:center;}
+    .backup-section input[type=file]{width:100%;}
+    .backup-button{width:100%;}
 }
 </style>
 </head>
@@ -72,6 +82,21 @@ body{margin:0;background:var(--cream);color:var(--ink);padding:clamp(16px,3vw,24
             <h3>Add Delivery</h3>
             <p>Create and assign orders to delivery guys.</p>
             <a href="/dashboard/delivery/add">Create Delivery</a>
+        </div>
+
+        <div class="card hidden" id="backupCard">
+            <h3>Backup</h3>
+            <p>Export a JSON/DOCX snapshot or restore data from a JSON backup file.</p>
+            <div class="backup-actions">
+                <a href="/dashboard/export" target="_blank">Export JSON</a>
+                <a href="/dashboard/export/docx" target="_blank">Export DOCX</a>
+            </div>
+            <div class="backup-section">
+                <label for="backupFile">Restore from JSON</label>
+                <input id="backupFile" type="file" accept="application/json" />
+                <button id="importBackupBtn" type="button" class="backup-button">Import Backup</button>
+            </div>
+            <div id="backupMessage" class="backup-message"></div>
         </div>
 
         <div class="card hidden" id="logsCard">
@@ -119,9 +144,54 @@ async function loadDashboard(){
         document.getElementById("logsCard").classList.remove("hidden");
     }
 
+    if(caps.canBackup){
+        document.getElementById("backupCard").classList.remove("hidden");
+    }
+
 }
 
 loadDashboard();
+
+const backupFileInput = document.getElementById("backupFile");
+const backupMessage = document.getElementById("backupMessage");
+const importBackupBtn = document.getElementById("importBackupBtn");
+
+importBackupBtn.addEventListener("click", async () => {
+    const file = backupFileInput.files[0];
+    if (!file) {
+        backupMessage.textContent = "Please select a JSON backup file to import.";
+        backupMessage.style.color = "#b42318";
+        return;
+    }
+
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        backupMessage.textContent = "Importing...";
+        backupMessage.style.color = "#26301f";
+
+        const res = await fetch("/dashboard/import", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+
+        if (!result.success) {
+            backupMessage.textContent = result.message || "Import failed.";
+            backupMessage.style.color = "#b42318";
+            return;
+        }
+
+        backupMessage.textContent = `Imported ${result.importedCount || 0} records successfully.`;
+        backupMessage.style.color = "#1e6b33";
+    } catch (err) {
+        backupMessage.textContent = "Failed to import backup file. Make sure it is valid JSON.";
+        backupMessage.style.color = "#b42318";
+        console.error(err);
+    }
+});
 
 document.getElementById("logoutBtn").addEventListener("click", async () => {
     await fetch("/login/logout", {

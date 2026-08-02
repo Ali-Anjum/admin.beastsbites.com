@@ -161,15 +161,15 @@ test('customer search strips special characters before querying the database', a
 
   const app = buildApp(route);
   const res = await request(app)
-    .get('/dashboard/customers/data?page=1&search=abc!@#$123')
-    .send();
+    .get('/dashboard/customers/data')
+    .query({ page: 1, search: 'abc!@#$123' });
 
   assert.equal(res.status, 200);
   assert.ok(capturedCountQuery);
-  assert.equal(capturedCountQuery.$or[0].customers_name.$regex.source, 'abc123');
-  assert.equal(capturedCountQuery.$or[1].phone_number.$regex.source, 'abc123');
-  assert.equal(capturedCountQuery.$or[2].location.$regex.source, 'abc123');
-  assert.equal(capturedFindQuery.$or[0].customers_name.$regex.source, 'abc123');
-  assert.equal(capturedFindQuery.$or[1].phone_number.$regex.source, 'abc123');
-  assert.equal(capturedFindQuery.$or[2].location.$regex.source, 'abc123');
+  assert.equal(capturedCountQuery.$or[0].customers_name.$regex, 'abc123');
+  assert.equal(capturedCountQuery.$or[1].phone_number.$regex, 'abc123');
+  assert.equal(capturedCountQuery.$or[2].location.$regex, 'abc123');
+  assert.equal(capturedFindQuery.$or[0].customers_name.$regex, 'abc123');
+  assert.equal(capturedFindQuery.$or[1].phone_number.$regex, 'abc123');
+  assert.equal(capturedFindQuery.$or[2].location.$regex, 'abc123');
 });

@@ -199,7 +199,8 @@ router.get("/data", async (req, res) => {
       canAddCustomer: role !== "Delivery-Guy",
       canManageUsers: role === "Owner",
       canViewLogs: role === "Owner",
-      canViewUsers
+      canViewUsers,
+      canBackup: role === "Owner" || role === "Manager"
     };
 
     return res.json({
@@ -282,111 +283,186 @@ router.get("/export/docx", allowRoles(["Owner", "Manager"]), async (req, res) =>
 });
 
 router.post("/import", allowRoles(["Owner", "Manager"]), async (req, res) => {
-  const insertedIds = {
-    users: [],
-    customers: [],
-    subscriptions: [],
-    deliveries: [],
-    logs: []
-  };
+  // Validate structure quickly
+  const { collections } = req.body || {};
 
-  const rollback = async () => {
-    try {
-      await Promise.all([
-        User.deleteMany({ _id: { $in: insertedIds.users } }),
-        Customer.deleteMany({ _id: { $in: insertedIds.customers } }),
-        Subscription.deleteMany({ _id: { $in: insertedIds.subscriptions } }),
-        Delivery.deleteMany({ _id: { $in: insertedIds.deliveries } }),
-        Log.deleteMany({ _id: { $in: insertedIds.logs } })
-      ]);
-    } catch (rollbackErr) {
-      console.error("Rollback error:", rollbackErr);
+  if (!collections || typeof collections !== "object") {
+    return res.status(400).json({ success: false, message: "Invalid import data format. Expected collections object." });
+  }
+
+  // Simple per-collection validators (lightweight)
+  const validate = async () => {
+    if (collections.users && !Array.isArray(collections.users)) throw new Error("collections.users must be an array");
+    if (collections.customers && !Array.isArray(collections.customers)) throw new Error("collections.customers must be an array");
+    if (collections.subscriptions && !Array.isArray(collections.subscriptions)) throw new Error("collections.subscriptions must be an array");
+    if (collections.deliveries && !Array.isArray(collections.deliveries)) throw new Error("collections.deliveries must be an array");
+    if (collections.logs && !Array.isArray(collections.logs)) throw new Error("collections.logs must be an array");
+
+    // Basic field checks for critical items (users)
+    if (collections.users) {
+      for (const u of collections.users) {
+        if (!u.username || !u.password || !u.role) throw new Error("Each user must have username, password and role");
+        if (!["Owner", "Manager", "Delivery-Guy", "Observer"].includes(u.role)) throw new Error("Invalid user role: " + u.role);
+      }
     }
+
+    // Validate documents against Mongoose schemas without saving
+    const validateDocs = async (Model, docs = []) => {
+      for (const doc of docs) {
+        const instance = new Model(doc);
+        await instance.validate();
+      }
+    };
+
+    await validateDocs(User, collections.users || []);
+    await validateDocs(Customer, collections.customers || []);
+    await validateDocs(Subscription, collections.subscriptions || []);
+    await validateDocs(Delivery, collections.deliveries || []);
+    // logs are free-form in this app; skip deep validation
   };
 
   try {
-    const { collections } = req.body;
+    await validate();
+  } catch (err) {
+    return res.status(400).json({ success: false, message: "Import validation failed: " + err.message });
+  }
 
-    if (!collections || typeof collections !== "object") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid import data format. Expected collections object."
-      });
-    }
+  // Try to perform the import inside a MongoDB transaction if available
+  let session = null;
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
 
+    // Remove all existing documents
+    await Promise.all([
+      User.deleteMany({}, { session }),
+      Customer.deleteMany({}, { session }),
+      Subscription.deleteMany({}, { session }),
+      Delivery.deleteMany({}, { session }),
+      Log.deleteMany({}, { session })
+    ]);
+
+    // Insert new documents (preserve payload order)
     let importedCount = 0;
 
-    if (collections.users && Array.isArray(collections.users)) {
-      for (const user of collections.users) {
-        if (user.username === "buttbros") continue;
-        const exists = await User.findOne({ user_id: user.user_id });
-        if (!exists) {
-          const created = await User.create({
-            user_id: user.user_id,
-            username: user.username,
-            password: user.password,
-            role: user.role,
-            is_active: user.is_active || true
-          });
-          insertedIds.users.push(created._id);
-          importedCount++;
+    if (collections.users && collections.users.length) {
+      const usersToInsert = collections.users.filter(u => u.username !== 'buttbros');
+      if (usersToInsert.length) {
+        await User.insertMany(usersToInsert, { session });
+        importedCount += usersToInsert.length;
+      }
+    }
+
+    if (collections.customers && collections.customers.length) {
+      await Customer.insertMany(collections.customers, { session });
+      importedCount += collections.customers.length;
+    }
+
+    if (collections.subscriptions && collections.subscriptions.length) {
+      await Subscription.insertMany(collections.subscriptions, { session });
+      importedCount += collections.subscriptions.length;
+    }
+
+    if (collections.deliveries && collections.deliveries.length) {
+      await Delivery.insertMany(collections.deliveries, { session });
+      importedCount += collections.deliveries.length;
+    }
+
+    if (collections.logs && collections.logs.length) {
+      await Log.insertMany(collections.logs, { session });
+      importedCount += collections.logs.length;
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.json({ success: true, message: `Imported ${importedCount} records successfully.`, importedCount });
+  } catch (txnErr) {
+    if (session) {
+      try { await session.abortTransaction(); } catch (e) { /* ignore */ }
+      session.endSession();
+    }
+
+    // If transactions are not supported or failed, fallback to safe backup+restore flow
+    console.warn('Transaction import failed, falling back to safe backup-restore:', txnErr.message || txnErr);
+
+    // Backup current data
+    const backup = {
+      users: await User.find({}).lean(),
+      customers: await Customer.find({}).lean(),
+      subscriptions: await Subscription.find({}).lean(),
+      deliveries: await Delivery.find({}).lean(),
+      logs: await Log.find({}).lean()
+    };
+
+    try {
+      // Delete all existing documents
+      await Promise.all([
+        User.deleteMany({}),
+        Customer.deleteMany({}),
+        Subscription.deleteMany({}),
+        Delivery.deleteMany({}),
+        Log.deleteMany({})
+      ]);
+
+      // Insert new documents using create (runs validation)
+      let importedCount = 0;
+
+      if (collections.users && collections.users.length) {
+        const usersToInsert = collections.users.filter(u => u.username !== 'buttbros');
+        if (usersToInsert.length) {
+          await User.create(usersToInsert);
+          importedCount += usersToInsert.length;
         }
       }
-    }
 
-    if (collections.customers && Array.isArray(collections.customers)) {
-      for (const customer of collections.customers) {
-        const exists = await Customer.findOne({ customers_id: customer.customers_id });
-        if (!exists) {
-          const created = await Customer.create(customer);
-          insertedIds.customers.push(created._id);
-          importedCount++;
-        }
+      if (collections.customers && collections.customers.length) {
+        await Customer.create(collections.customers);
+        importedCount += collections.customers.length;
+      }
+
+      if (collections.subscriptions && collections.subscriptions.length) {
+        await Subscription.create(collections.subscriptions);
+        importedCount += collections.subscriptions.length;
+      }
+
+      if (collections.deliveries && collections.deliveries.length) {
+        await Delivery.create(collections.deliveries);
+        importedCount += collections.deliveries.length;
+      }
+
+      if (collections.logs && collections.logs.length) {
+        await Log.create(collections.logs);
+        importedCount += collections.logs.length;
+      }
+
+      return res.json({ success: true, message: `Imported ${importedCount} records successfully.`, importedCount });
+    } catch (errDuringInsert) {
+      console.error('Import failed after deletion, attempting restore from backup:', errDuringInsert);
+
+      // Try to restore backup
+      try {
+        await Promise.all([
+          User.deleteMany({}),
+          Customer.deleteMany({}),
+          Subscription.deleteMany({}),
+          Delivery.deleteMany({}),
+          Log.deleteMany({})
+        ]);
+
+        // Re-insert backup (use insertMany to include original _id fields)
+        if (backup.users.length) await User.insertMany(backup.users);
+        if (backup.customers.length) await Customer.insertMany(backup.customers);
+        if (backup.subscriptions.length) await Subscription.insertMany(backup.subscriptions);
+        if (backup.deliveries.length) await Delivery.insertMany(backup.deliveries);
+        if (backup.logs.length) await Log.insertMany(backup.logs);
+
+        return res.status(500).json({ success: false, message: 'Import failed and the original data has been restored. Error: ' + errDuringInsert.message });
+      } catch (restoreErr) {
+        console.error('Restore after failed import also failed:', restoreErr);
+        return res.status(500).json({ success: false, message: 'Import failed and restore also failed. Manual intervention required.' });
       }
     }
-
-    if (collections.subscriptions && Array.isArray(collections.subscriptions)) {
-      for (const subscription of collections.subscriptions) {
-        const exists = await Subscription.findOne({ subscription_id: subscription.subscription_id });
-        if (!exists) {
-          const created = await Subscription.create(subscription);
-          insertedIds.subscriptions.push(created._id);
-          importedCount++;
-        }
-      }
-    }
-
-    if (collections.deliveries && Array.isArray(collections.deliveries)) {
-      for (const delivery of collections.deliveries) {
-        const exists = await Delivery.findOne({ delivery_id: delivery.delivery_id });
-        if (!exists) {
-          const created = await Delivery.create(delivery);
-          insertedIds.deliveries.push(created._id);
-          importedCount++;
-        }
-      }
-    }
-
-    if (collections.logs && Array.isArray(collections.logs)) {
-      for (const log of collections.logs) {
-        const created = await Log.create(log);
-        insertedIds.logs.push(created._id);
-        importedCount++;
-      }
-    }
-
-    return res.json({
-      success: true,
-      message: `Imported ${importedCount} records successfully.`,
-      importedCount
-    });
-  } catch (err) {
-    console.error("Import error:", err);
-    await rollback();
-    return res.status(500).json({
-      success: false,
-      message: "Failed to import data. Database rolled back to previous state. " + err.message
-    });
   }
 });
 
