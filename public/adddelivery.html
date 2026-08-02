@@ -114,7 +114,8 @@ form.addEventListener("submit", async e => {
   if (data.success) {
     msg.className = "success";
     msg.innerText = "Delivery added successfully.";
-    form.reset();
+    window.location.href = "/dashboard/delivery";
+    return;
   } else {
     msg.className = "error";
     msg.innerText = data.message;

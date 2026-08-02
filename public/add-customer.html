@@ -338,11 +338,10 @@ document.getElementById("customerForm").addEventListener("submit", async (e) => 
         meal_time,
         delivery_guy,
         comments
-    });
-    </script>
-    <script src="/app-header.js"></script>
-    </body>
-    </html>
+    };
+
+    try {
+        const res = await fetch("/dashboard/customers/add", {
             method: "POST",
             credentials: "include",
             headers: {
@@ -361,8 +360,13 @@ document.getElementById("customerForm").addEventListener("submit", async (e) => 
 
         messageEl.className = "success";
         messageEl.textContent = "Customer added successfully.";
-        document.getElementById("customerForm").reset();
-        loadDeliveryGuys();
+
+        const customerId = data.customer?.customers_id;
+        if (customerId) {
+            window.location.href = `/dashboard/customers/${customerId}`;
+        } else {
+            window.location.href = "/dashboard/customers";
+        }
     } catch (err) {
         messageEl.className = "error";
         messageEl.textContent = "Internal error while adding customer.";

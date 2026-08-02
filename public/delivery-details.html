@@ -57,7 +57,7 @@
         <div class="photo-section">
           <label for="photoFile">Upload Photo</label>
           <input id="photoFile" type="file" accept="image/*" />
-          <div id="photoHint" class="photo-hint">Choose a photo file before marking this delivery as Delivered.</div>
+          <div id="photoHint" class="photo-hint">Choose a photo file to mark this delivery as Delivered.</div>
         </div>
         <button id="saveBtn">Save Status</button>
       </div>
@@ -79,6 +79,12 @@
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       await fetch('/login/logout', { method: 'POST', credentials: 'include' });
       window.location.href = '/login';
+    });
+
+    document.getElementById('photoFile').addEventListener('change', (event) => {
+      if (event.target.files && event.target.files.length > 0) {
+        document.getElementById('delivery_status').value = 'Delivered';
+      }
     });
 
     async function loadDelivery() {
@@ -161,6 +167,9 @@
       } else {
         messageEl.className = 'success';
         messageEl.textContent = 'Delivery updated successfully.';
+        setTimeout(() => {
+          window.location.href = '/dashboard/delivery';
+        }, 500);
       }
     });
 
