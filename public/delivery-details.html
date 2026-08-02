@@ -95,8 +95,9 @@
       document.getElementById('deliveryTitle').textContent = `Delivery #${delivery.delivery_id}`;
       document.getElementById('deliveryInfo').innerHTML = `
         <strong>Status:</strong> <span class="badge">${delivery.delivery_status}</span><br>
+        <strong>Status Time:</strong> ${delivery.delivery_status_timestamp ? new Date(delivery.delivery_status_timestamp).toLocaleDateString() : '-'}<br>
         <strong>Assigned To:</strong> ${delivery.assigned_to_username || '-'}<br>
-        <strong>Date:</strong> ${new Date(delivery.delivery_date).toLocaleString()}<br>
+        <strong>Date:</strong> ${new Date(delivery.delivery_date).toLocaleDateString()}<br>
         <strong>Subscription:</strong> ${delivery.subscription_id || '-'}<br>
         <strong>Food:</strong> ${delivery.food || '-'}<br>
         <strong>Meals:</strong> ${(delivery.meal_time || []).join(', ') || '-'}

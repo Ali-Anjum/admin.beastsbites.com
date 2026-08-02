@@ -37,6 +37,10 @@ const deliverySchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  delivery_status_timestamp: {
+    type: Date,
+    default: null
+  },
   delivery_status: {
     type: String,
     enum: ["Pending", "Delivered", "Cancelled"],

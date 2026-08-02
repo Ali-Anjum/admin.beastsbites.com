@@ -75,6 +75,7 @@
                         <th>Delivery Date</th>
                         <th>Food</th>
                         <th>Status</th>
+                        <th>Status Time</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -140,9 +141,10 @@
                     <td><a href="/delivery/${delivery._id}">${delivery.delivery_id}</a></td>
                     <td>${delivery.subscription_id}</td>
                     <td>${delivery.assigned_to_username || "-"}</td>
-                    <td>${new Date(delivery.delivery_date).toLocaleString()}</td>
+                    <td>${new Date(delivery.delivery_date).toLocaleDateString()}</td>
                     <td>${delivery.food}</td>
                     <td><span class="badge ${delivery.delivery_status.toLowerCase()}">${delivery.delivery_status}</span></td>
+                    <td>${delivery.delivery_status_timestamp ? new Date(delivery.delivery_status_timestamp).toLocaleDateString() : "-"}</td>
                 </tr>`;
             });
         }

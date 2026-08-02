@@ -36,10 +36,11 @@ button:hover{ background:var(--green-dark); }
     <h1 style="margin:0;">Add Delivery</h1>
     <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
   </div>
-  <form id="deliveryForm">
-    <label>Customer Name</label>
-    <input type="text" id="customer_name" list="customerOptions" placeholder="Type or select customer" required>
-    <datalist id="customerOptions"></datalist>
+  <form id="deliveryForm" autocomplete="off">
+    <label>Customer</label>
+    <select id="customer_id" required>
+      <option value="">Select customer</option>
+    </select>
 
     <label>Assign To Delivery Guy</label>
     <select id="assigned_to_user_id" required>
@@ -47,7 +48,7 @@ button:hover{ background:var(--green-dark); }
     </select>
 
     <label>Delivery Date</label>
-    <input type="datetime-local" id="delivery_date" required>
+    <input type="date" id="delivery_date" required>
 
     <label>Diet Preference</label>
     <select id="diet_preference" required>
@@ -91,7 +92,7 @@ form.addEventListener("submit", async e => {
   }
 
   const body = {
-    customer_name: document.getElementById("customer_name").value.trim(),
+    customer_id: Number(document.getElementById("customer_id").value),
     assigned_to_user_id: Number(document.getElementById("assigned_to_user_id").value),
     delivery_date: document.getElementById("delivery_date").value,
     diet_preference: document.getElementById("diet_preference").value,
@@ -144,12 +145,12 @@ async function loadCustomers() {
     const data = await res.json();
     if (!data.success) return;
 
-    const list = document.getElementById("customerOptions");
-    list.innerHTML = "";
+    const select = document.getElementById("customer_id");
     data.customers.forEach(customer => {
       const option = document.createElement("option");
-      option.value = customer.customers_name;
-      list.appendChild(option);
+      option.value = String(customer.customers_id);
+      option.textContent = customer.customers_name;
+      select.appendChild(option);
     });
   } catch (err) {
     console.error(err);

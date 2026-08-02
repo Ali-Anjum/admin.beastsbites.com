@@ -164,12 +164,15 @@ router.patch("/:id/status", async (req, res) => {
             }
         }
 
+        const statusUpdatePayload = {
+            delivery_status,
+            ...(delivery_status === "Delivered" ? { photo_url: photo, photo_uploaded_at: new Date() } : {}),
+            ...((delivery_status === "Delivered" || delivery_status === "Cancelled") ? { delivery_status_timestamp: new Date() } : {})
+        };
+
         const updatedDelivery = await Delivery.findOneAndUpdate(
             query,
-            {
-                delivery_status,
-                ...(delivery_status === "Delivered" ? { photo_url: photo, photo_uploaded_at: new Date() } : {})
-            },
+            statusUpdatePayload,
             { new: true }
         );
 
@@ -217,7 +220,8 @@ router.post("/add", allowRoles(["Owner", "Manager", "Observer"]), async (req, re
             food: "Combined Meal",
             meal_time: Array.isArray(meal_time) ? meal_time : [],
             delivery_status,
-            comments: comments || ""
+            comments: comments || "",
+            ...((delivery_status === "Delivered" || delivery_status === "Cancelled") ? { delivery_status_timestamp: new Date() } : {})
         });
 
         res.json({ success: true, message: "Delivery added successfully.", delivery });
