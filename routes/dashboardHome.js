@@ -11,6 +11,7 @@ const Customer = require("../Models/customersSchema");
 const User = require("../Models/UserSchema");
 const Log = require("../Models/LogSchema");
 const Subscription = require("../Models/SubscriptionSchema");
+const { getDubaiDateKey } = require("../helpers/businessRules");
 
 const router = express.Router();
 
@@ -186,6 +187,31 @@ router.get("/data", async (req, res) => {
 
     const userQuery = { username: { $ne: "buttbros" } };
 
+    // Get today's date key using Dubai timezone
+    const todayKey = getDubaiDateKey(new Date());
+    const todayStart = new Date(`${todayKey}T00:00:00Z`);
+    const todayEnd = new Date(`${todayKey}T23:59:59.999Z`);
+
+    // Calculate today's meal totals (excluding delivered deliveries)
+    const todayDeliveries = await Delivery.find({
+      delivery_date: { $gte: todayStart, $lte: todayEnd },
+      delivery_status: { $ne: "Delivered" }
+    });
+
+    const mealTotals = {
+      breakfast: 0,
+      lunch: 0,
+      dinner: 0
+    };
+
+    todayDeliveries.forEach(delivery => {
+      if (delivery.meal_time && Array.isArray(delivery.meal_time)) {
+        if (delivery.meal_time.includes("Breakfast")) mealTotals.breakfast++;
+        if (delivery.meal_time.includes("Lunch")) mealTotals.lunch++;
+        if (delivery.meal_time.includes("Dinner")) mealTotals.dinner++;
+      }
+    });
+
     const [deliveryCount, customerCount, userCount] = await Promise.all([
       Delivery.countDocuments(deliveryQuery),
       Customer.countDocuments({})
@@ -214,6 +240,7 @@ router.get("/data", async (req, res) => {
         customers: customerCount,
         users: userCount
       },
+      mealTotals,
       capabilities
     });
   } catch (err) {

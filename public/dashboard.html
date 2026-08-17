@@ -60,6 +60,13 @@ body{margin:0;background:var(--cream);color:var(--ink);padding:clamp(16px,3vw,24
     </div>
 
     <div class="grid">
+        <div class="card" id="todaysMealsCard">
+            <h3>Today's Meals to Make</h3>
+            <p><strong>🥞 Breakfasts:</strong> <span id="breakfastCount">0</span></p>
+            <p><strong>🍽️ Lunches:</strong> <span id="lunchCount">0</span></p>
+            <p><strong>🌙 Dinners:</strong> <span id="dinnerCount">0</span></p>
+        </div>
+
         <div class="card" id="deliveriesCard">
             <h3>Deliveries</h3>
             <p id="deliveryCount">0 deliveries</p>
@@ -124,6 +131,9 @@ async function loadDashboard(){
     caps = data.capabilities;
 
     document.getElementById("who").textContent = `${data.user.username} (${data.user.role})`;
+    document.getElementById("breakfastCount").textContent = data.mealTotals?.breakfast || 0;
+    document.getElementById("lunchCount").textContent = data.mealTotals?.lunch || 0;
+    document.getElementById("dinnerCount").textContent = data.mealTotals?.dinner || 0;
     document.getElementById("deliveryCount").textContent = `${data.counts.deliveries} deliveries`;
     document.getElementById("customerCount").textContent = `${data.counts.customers} customers`;
     document.getElementById("userCount").textContent = `${data.counts.users || 0} users`;
