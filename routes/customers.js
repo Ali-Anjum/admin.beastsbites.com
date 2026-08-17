@@ -192,7 +192,8 @@ router.post("/add",  async (req, res) => {
             active_till,
             meal_time,
             delivery_guy,
-            comments
+            comments,
+            paymentProofPhoto
         } = req.body;
 
         const validation = validateCustomerPayload({
@@ -274,7 +275,8 @@ router.post("/add",  async (req, res) => {
                 status: getCustomerStatus(normalizedActiveTill),
                 meal_time,
                 delivery_guy,
-                comments: (comments || "").trim()
+                comments: (comments || "").trim(),
+                paymentProofPhoto: paymentProofPhoto || null
                 });
             } catch (createErr) {
                 attempts += 1;
@@ -387,7 +389,7 @@ router.patch("/:id", async (req, res) => {
             return res.status(404).json({ success: false, message: "Customer not found." });
         }
 
-        const { customers_name, phone_number, location, diet_preference, active_till, meal_time, delivery_guy, comments } = req.body;
+        const { customers_name, phone_number, location, diet_preference, active_till, meal_time, delivery_guy, comments, paymentProofPhoto } = req.body;
 
         if (!customers_name || !phone_number || !location || !diet_preference || !active_till || !Array.isArray(meal_time) || meal_time.length === 0 || !delivery_guy) {
             return res.status(400).json({ success: false, message: "Customer name, phone number, veg/non-veg, active till, at least one meal time and delivery guy are required." });
@@ -435,7 +437,8 @@ router.patch("/:id", async (req, res) => {
                     status: getCustomerStatus(normalizedActiveTill),
                     meal_time,
                     delivery_guy,
-                    comments: (comments || "").trim()
+                    comments: (comments || "").trim(),
+                    ...(paymentProofPhoto !== undefined && { paymentProofPhoto })
                 }
             },
             { new: true }

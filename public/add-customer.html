@@ -98,6 +98,26 @@ textarea:focus{
     width:auto;
 }
 
+.photo-preview {
+    width:100%;
+    max-width:300px;
+    height:auto;
+    border-radius:8px;
+    margin-top:8px;
+    display:none;
+}
+
+.photo-preview.show {
+    display:block;
+}
+
+.hint {
+    font-size:12px;
+    color:#777;
+    margin-top:4px;
+    font-weight:normal;
+}
+
 button{
     width:100%;
     margin-top:24px;
@@ -215,6 +235,9 @@ button:disabled{
         <label for="comments">Comments</label>
         <textarea id="comments" placeholder="Any notes for this customer (optional)"></textarea>
 
+        <label for="paymentProofPhoto">Payment Proof Photo (Optional)</label>
+        <input id="paymentProofPhoto" type="file" accept="image/*">        <img id=\"photoPreview\" class=\"photo-preview\" alt=\"Payment Proof\" />        <div class="hint">Upload a photo for payment proof. This is optional and can be edited later.</div>
+
         <button type="submit" id="submitBtn">Add Customer</button>
     </form>
 
@@ -302,7 +325,18 @@ async function loadDeliveryGuys() {
 }
 
 loadDeliveryGuys();
-
+document.getElementById('paymentProofPhoto').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const photoPreview = document.getElementById('photoPreview');
+      photoPreview.src = event.target.result;
+      photoPreview.classList.add('show');
+    };
+    reader.readAsDataURL(file);
+  }
+});
 document.getElementById("logoutBtn").addEventListener("click", async () => {
     await fetch("/login/logout", { method: "POST", credentials: "include" });
     window.location.href = "/login";
@@ -319,6 +353,7 @@ document.getElementById("customerForm").addEventListener("submit", async (e) => 
     const meal_time = Array.from(document.querySelectorAll('input[name="meal_time"]:checked')).map(el => el.value);
     const delivery_guy = document.getElementById("delivery_guy").value;
     const comments = document.getElementById("comments").value.trim();
+    const photoFile = document.getElementById("paymentProofPhoto").files[0];
 
     if (!diet_preference) {
         messageEl.className = "error";
@@ -332,6 +367,22 @@ document.getElementById("customerForm").addEventListener("submit", async (e) => 
         return;
     }
 
+    let paymentProofPhoto = null;
+    if (photoFile) {
+        try {
+            paymentProofPhoto = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => resolve(event.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(photoFile);
+            });
+        } catch (err) {
+            messageEl.className = "error";
+            messageEl.textContent = "Failed to read photo file.";
+            return;
+        }
+    }
+
     const payload = {
         customers_name,
         phone_number,
@@ -340,7 +391,8 @@ document.getElementById("customerForm").addEventListener("submit", async (e) => 
         active_till,
         meal_time,
         delivery_guy,
-        comments
+        comments,
+        paymentProofPhoto
     };
 
     try {

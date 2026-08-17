@@ -61,6 +61,11 @@ const customersSchema = new mongoose.Schema({
     comments: {
         type: String,
         default: ""
+    },
+
+    paymentProofPhoto: {
+        type: String,
+        default: null
     }
 }, {
     timestamps: true

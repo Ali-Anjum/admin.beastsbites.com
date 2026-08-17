@@ -29,6 +29,9 @@
     .logout-btn { margin-top:0; background:#b42318; }
     .logout-btn:hover { background:#8f2017; }
     a { color:var(--green-dark); }
+    .photo-preview { width:100%; max-width:300px; height:auto; border-radius:8px; margin-top:8px; display:none; }
+    .photo-preview.show { display:block; }
+    .hint { font-size:12px; color:#777; margin-top:4px; font-weight:normal; }
     @media (max-width: 800px) {
       .container { padding:18px; }
       .grid { grid-template-columns:1fr; }
@@ -77,6 +80,10 @@
           <select id="delivery_guy"></select>
           <label>Comments</label>
           <textarea id="comments"></textarea>
+          <label>Payment Proof Photo</label>
+          <img id="photoPreview" class="photo-preview" alt="Payment Proof" />
+          <input id="paymentProofPhoto" type="file" accept="image/*" />
+          <div class="hint">Upload a photo for payment proof. This is optional and can be edited anytime.</div>
           <button type="submit">Update Customer</button>
         </form>
       </div>
@@ -144,6 +151,13 @@
       });
       deliveryGuySelect.value = customer.delivery_guy;
       document.getElementById('comments').value = customer.comments || '';
+      
+      if (customer.paymentProofPhoto) {
+        const photoPreview = document.getElementById('photoPreview');
+        photoPreview.src = customer.paymentProofPhoto;
+        photoPreview.classList.add('show');
+      }
+      
       const activeTillSelect = document.getElementById('active_till');
       activeTillSelect.innerHTML = '';
       const today = new Date();
@@ -173,6 +187,24 @@
 
     document.getElementById('customerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const photoFile = document.getElementById('paymentProofPhoto').files[0];
+      let paymentProofPhoto = undefined;
+      
+      if (photoFile) {
+        try {
+          paymentProofPhoto = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(photoFile);
+          });
+        } catch (err) {
+          messageEl.className = 'error';
+          messageEl.textContent = 'Failed to read photo file.';
+          return;
+        }
+      }
+      
       const payload = {
         customers_name: document.getElementById('customers_name').value.trim(),
         phone_number: document.getElementById('phone_number').value.trim(),
@@ -183,6 +215,11 @@
         delivery_guy: document.getElementById('delivery_guy').value,
         comments: document.getElementById('comments').value.trim()
       };
+      
+      if (paymentProofPhoto !== undefined) {
+        payload.paymentProofPhoto = paymentProofPhoto;
+      }
+      
       const res = await fetch(`/dashboard/customers/${customerId}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!data.success) {
@@ -192,6 +229,19 @@
         messageEl.className = 'success';
         messageEl.textContent = 'Customer updated successfully.';
         window.location.reload();
+      }
+    });
+
+    document.getElementById('paymentProofPhoto').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const photoPreview = document.getElementById('photoPreview');
+          photoPreview.src = event.target.result;
+          photoPreview.classList.add('show');
+        };
+        reader.readAsDataURL(file);
       }
     });
 
