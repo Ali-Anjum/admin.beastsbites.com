@@ -55,7 +55,8 @@ async function generateDailyDeliveries() {
   try {
     await syncCustomerStatuses();
 
-    const timeSetting =  '2:31';
+   const timeSetting = process.env.DAILY_DELIVERY_TIME || '00:00';
+
     const [hour, minute] = timeSetting.split(':').map(Number);
     const now = new Date();
     const dubaiNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
