@@ -198,13 +198,15 @@ router.get("/data", async (req, res) => {
       delivery_status: { $ne: "Delivered" }
     });
 
+    const todayDeliveriesList = Array.isArray(todayDeliveries) ? todayDeliveries : [];
+
     const mealTotals = {
       breakfast: 0,
       lunch: 0,
       dinner: 0
     };
 
-    todayDeliveries.forEach(delivery => {
+    todayDeliveriesList.forEach(delivery => {
       if (delivery.meal_time && Array.isArray(delivery.meal_time)) {
         if (delivery.meal_time.includes("Breakfast")) mealTotals.breakfast++;
         if (delivery.meal_time.includes("Lunch")) mealTotals.lunch++;

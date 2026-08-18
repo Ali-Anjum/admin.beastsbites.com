@@ -104,6 +104,16 @@
     const customerId = window.location.pathname.split('/').pop();
     const messageEl = document.getElementById('message');
 
+    function normalizeImageSource(value) {
+      if (typeof value !== 'string') return '';
+      const source = value.trim();
+      if (!source) return '';
+      if (/^data:image\//i.test(source) || /^https?:\/\//i.test(source) || source.startsWith('/')) {
+        return source;
+      }
+      return '';
+    }
+
     function toDateKey(date) {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -152,10 +162,14 @@
       deliveryGuySelect.value = customer.delivery_guy;
       document.getElementById('comments').value = customer.comments || '';
       
-      if (customer.paymentProofPhoto) {
-        const photoPreview = document.getElementById('photoPreview');
-        photoPreview.src = customer.paymentProofPhoto;
+      const photoPreview = document.getElementById('photoPreview');
+      const photoSrc = normalizeImageSource(customer.paymentProofPhoto || customer.photo_url);
+      if (photoSrc) {
+        photoPreview.src = photoSrc;
         photoPreview.classList.add('show');
+      } else {
+        photoPreview.removeAttribute('src');
+        photoPreview.classList.remove('show');
       }
       
       const activeTillSelect = document.getElementById('active_till');
@@ -238,8 +252,14 @@
         const reader = new FileReader();
         reader.onload = (event) => {
           const photoPreview = document.getElementById('photoPreview');
-          photoPreview.src = event.target.result;
-          photoPreview.classList.add('show');
+          const source = normalizeImageSource(event.target.result);
+          if (source) {
+            photoPreview.src = source;
+            photoPreview.classList.add('show');
+          } else {
+            photoPreview.removeAttribute('src');
+            photoPreview.classList.remove('show');
+          }
         };
         reader.readAsDataURL(file);
       }

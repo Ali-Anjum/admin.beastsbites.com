@@ -331,8 +331,14 @@ document.getElementById('paymentProofPhoto').addEventListener('change', (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const photoPreview = document.getElementById('photoPreview');
-      photoPreview.src = event.target.result;
-      photoPreview.classList.add('show');
+      const source = /^data:image\//i.test(String(event.target.result)) ? event.target.result : '';
+      if (source) {
+        photoPreview.src = source;
+        photoPreview.classList.add('show');
+      } else {
+        photoPreview.removeAttribute('src');
+        photoPreview.classList.remove('show');
+      }
     };
     reader.readAsDataURL(file);
   }
